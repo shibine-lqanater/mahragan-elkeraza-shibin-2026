@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مهرجان الكرازة - إيبارشية شبين القناطر</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        body { margin:0; font-family:'Cairo',sans-serif; background:#f5f5f5; }
+        .header { background: linear-gradient(135deg,#1565c0,#0d47a1); padding:30px 40px; display:flex; align-items:center; justify-content:center; position:relative; }
+        .header img { max-height:120px; }
+        .header img:first-child { position:absolute; left:40px; }
+        .header img:last-child { position:absolute; right:40px; }
+        .header-title { text-align:center; color:white; font-size:26px; font-weight:700; line-height:1.4; }
+        .container { max-width:450px; margin:40px auto; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.1); }
+        label { font-weight: 600; display: block; margin-bottom: 8px; color: #333; }
+        input, select { width:100%; padding:14px; margin-bottom:15px; border-radius:8px; border:1px solid #ccc; font-size:15px; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+        button { width:100%; padding:14px; background:linear-gradient(135deg,#2e7d32,#1b5e20); color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer; margin-bottom:10px; font-weight: bold; }
+        .message { margin-top:15px; font-size:14px; padding:15px; border-radius:8px; display:none; white-space: pre-line; line-height: 1.6; border: 1px solid transparent; }
+        .error { background:#ffe5e5; color:#c62828; border-color: #f5c2c2; }
+        .success { background:#e8f5e9; color:#2e7d32; border-color: #c3e6cb; }
+        .duplicate-box { background:#fff2f2; padding:10px; border-radius:8px; margin-bottom:10px; border:1px dashed #c62828; }
+        input.error-field, select.error-field { border: 2px solid #c62828; animation: shake 0.3s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    </style>
+</head>
+
+<body>
+
+<div class="header">
+    <img src="logo.png">
+    <div class="header-title">مهرجان الكرازة المرقسية<br>أيبارشية شبين القناطر</div>
+    <img src="left-image.jpg">
+</div>
+
+<div class="container">
+    <label>اختر كنيستك:</label>
+    <select id="churchName">
+        <option value="">-- اضغط هنا لاختيار الكنيسة --</option>
+    </select>
+    
+    <label>كلمة المرور:</label>
+    <input type="password" id="password" placeholder="أدخل كلمة المرور الخاصة بالكنيسة">
+    
+    <label>ملف الإكسيل (XLSX):</label>
+    <input type="file" id="fileInput" accept=".xlsx">
+    
+    <button onclick="validateFile()">بدء فحص ورفع الملف</button>
+    <div id="messageBox" class="message"></div>
+</div>
+
+<script>
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw335BzjbwMFg3M1LcjEe_W_4iC7TtLyfDUPQrJOwZ0IY6o79VELaA0tbOR5hH2sHK6/exec";
+
+const churches = [
+    "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي", "العذراء و الانبا بيشوي المنية", 
+    "العذراء و الانبا موسي الخصوص", "العذراء و البابا بطرس الخانكة", "العذراء و الشهيد ابانوب القلج", 
+    "العذراء و الشهيد ابانوب المرج الغربية", "العذراء و الملاك العكرشة", "العذراء و الملاك ميخائيل الخصوص", 
+    "العذراء و مارمرقس كفر شبين", "العذراء و مارمينا الجبل الاصفر", "العذراء و ماريوحنا الخصوص", 
+    "العذراء و يوسف النجار الخصوص", "كنيسة ابوسفين الخصوص", "كنيسة ابوسفين و دميانة الجبل الاصفر", 
+    "كنيسة الانبا بيشوي كوم الاطرون", "كنيسة الانبا كاراس الخصوص", "كنيسة الانبا كاراس نوي", 
+    "كنيسة البابا اثناسيوس الخصوص", "كنيسة البابا كيرلس كفر الدير", "كنيسة الشهيدة دميانة ميت عاصم", 
+    "كنيسة الشهيدة دميانة ميت كنانة", "كنيسة العذراء المطرانية", "كنيسة العذراء و الرسولين", 
+    "كنيسة العذراء و الشهدين القلج", "كنيسة الملاك القشيش", "كنيسة الملاك القلزم", 
+    "كنيسة مارجرجس بلتان", "كنيسة مارجرجس طوخ", "كنيسة مارجرجس قها", 
+    "كنيسة مارجرجس و البابا ديسقورس", "كنيسة مارمينا ساحل دجوي", "كنيسة مارمينا و البابا كيرلس الخصوص", 
+    "مارجرجس ابو زعبل", "مارجرجس شبين القناطر", "مذبح الامير تادرس الخصوص"
+];
+
+const churchSelect = document.getElementById('churchName');
+churches.forEach(name => {
+    let option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    churchSelect.appendChild(option);
+});
+
+function showMessage(text, type) {
+    let box = document.getElementById("messageBox");
+    box.style.display = "block";
+    box.className = "message " + type;
+    box.innerHTML = text;
+}
+
+function validateFile() {
+    let churchName = document.getElementById("churchName").value;
+    let password = document.getElementById("password").value.trim();
+    let fileInput = document.getElementById("fileInput");
+    let file = fileInput.files[0];
+
+    if(!churchName || !password || !file) {
+        showMessage("⚠️ برجاء إكمال كافة البيانات (الكنيسة، كلمة المرور، الملف).", "error");
+        return;
+    }
+
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let data = new Uint8Array(e.target.result);
+        let workbook = XLSX.read(data, {type: 'array'});
+        let sheet = workbook.Sheets[workbook.SheetNames[0]];
+        let rows = XLSX.utils.sheet_to_json(sheet, {header: 1});
+        checkData(rows, password, churchName, file);
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function checkData(rows, password, churchName, fileObject) {
+    let errors = [];
+    let today = new Date();
+    let nameInfo = {};
+
+    for(let i=2; i < rows.length; i++) {
+        let row = rows[i];
+        let rowNumber = i + 1;
+        let name = row[0] ? row[0].toString().trim() : "";
+        if(!name) continue;
+
+        if (!nameInfo[name]) { nameInfo[name] = { count: 0, rows: [] }; }
+        nameInfo[name].count++;
+        nameInfo[name].rows.push(rowNumber);
+
+        let gender = row[2] ? row[2].toString().trim().replace(/\s+/g,"") : "";
+        let day = parseInt(row[3]);
+        let month = parseInt(row[4]);
+        let year = parseInt(row[5]);
+        let level1 = row[6] ? row[6].toString().trim() : "";
+
+        if(name.split(" ").filter(p=>p).length < 3) errors.push(`📍 الصف ${rowNumber}: الاسم يجب أن يكون ثلاثياً.`);
+        if(/\d/.test(name)) errors.push(`📍 الصف ${rowNumber}: الاسم يحتوي على أرقام.`);
+        if(gender !== "ذكر" && gender !== "انثى") errors.push(`📍 الصف ${rowNumber}: برجاء تحديد النوع (ذكر أو انثى).`);
+        
+        if(!day || !month || !year) {
+            errors.push(`📍 الصف ${rowNumber}: تاريخ الميلاد غير مكتمل.`);
+        } else {
+            let birth = new Date(year, month - 1, day);
+            let age = today.getFullYear() - year;
+            if(birth >= today || age < 3 || age > 90) errors.push(`📍 الصف ${rowNumber}: السن غير منطقي.`);
+        }
+        
+        if(!level1 || level1.includes("اختر")) {
+            errors.push(`📍 الصف ${rowNumber}: رجاء ادخال المرحلة و المسابقة فى أول خانة من خانات المسابقات.`);
+        }
+    }
+
+    // 1. فحص الأخطاء العادية
+    if(errors.length > 0) {
+        showMessage("❌ تم العثور على أخطاء في البيانات:\n\n" + errors.slice(0, 8).join("\n"), "error");
+        return;
+    }
+
+    // 2. فحص التكرار (منع الرفع)
+    let duplicates = Object.keys(nameInfo).filter(n => nameInfo[n].count > 1);
+    if(duplicates.length > 0) {
+        let html = "❌ <b>خطأ تكرار:</b> تم العثور على أسماء مكررة في الملف.<br>برجاء مسحها من ملف الإكسيل الأصلي وحفظه ثم إعادة المحاولة:<br><br>";
+        duplicates.forEach(name => {
+            let info = nameInfo[name];
+            html += `<div class="duplicate-box">
+                <b>الاسم: ${name}</b><br>
+                ⚠️ متكرر ${info.count} مرات في الصفوف: (${info.rows.join(", ")})
+            </div>`;
+        });
+        showMessage(html, "error");
+        return; // توقف تام عن الرفع
+    }
+
+    // 3. إذا كان كل شيء سليم، ارفع الملف الأصلي
+    uploadNow(fileObject, password, churchName);
+}
+
+function uploadNow(file, password, churchName) {
+    let reader = new FileReader();
+    showMessage("⏳ جاري التحقق من كلمة المرور ورفع الملف الأصلي...", "success");
+
+    reader.onload = function(e) {
+        let base64Data = e.target.result.split(',')[1];
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                fileName: file.name,
+                mimeType: file.type,
+                fileData: base64Data,
+                church: churchName,
+                password: password
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                showMessage("✅ " + data.message, "success");
+                document.getElementById("fileInput").value = "";
+                document.getElementById("password").value = "";
+            } else {
+                showMessage("❌ عفواً: " + data.message, "error");
+            }
+        })
+        .catch(() => showMessage("❌ حدث خطأ ", "error"));
+    };
+    reader.readAsDataURL(file);
+}
+</script>
+</body>
+</html>
