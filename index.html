@@ -17,14 +17,23 @@
         .header-title { text-align:center; color:white; font-size:26px; font-weight:700; line-height:1.4; }
         .container { max-width:450px; margin:40px auto; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.1); }
         label { font-weight: 600; display: block; margin-bottom: 8px; color: #333; }
-        input, select { width:100%; padding:14px; margin-bottom:15px; border-radius:8px; border:1px solid #ccc; font-size:15px; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+        input, select { width:100%; padding:14px; margin-bottom:15px; border-radius:8px; border:1px solid #ccc; font-size:15px; box-sizing: border-box; font-family: 'Cairo', sans-serif; transition: 0.3s; }
         button { width:100%; padding:14px; background:linear-gradient(135deg,#2e7d32,#1b5e20); color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer; margin-bottom:10px; font-weight: bold; }
+        .btn-view { background: linear-gradient(135deg,#455a64,#263238); }
         .message { margin-top:15px; font-size:14px; padding:15px; border-radius:8px; display:none; white-space: pre-line; line-height: 1.6; border: 1px solid transparent; }
         .error { background:#ffe5e5; color:#c62828; border-color: #f5c2c2; }
         .success { background:#e8f5e9; color:#2e7d32; border-color: #c3e6cb; }
-        .duplicate-box { background:#fff2f2; padding:10px; border-radius:8px; margin-bottom:10px; border:1px dashed #c62828; }
-        input.error-field, select.error-field { border: 2px solid #c62828; animation: shake 0.3s; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        
+        /* تأثير الهزة والاحمرار */
+        .error-field { border: 2px solid #ff0000 !important; animation: shake 0.4s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
+
+        /* ستايل الجدول */
+        .history-section { margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px; display:none; }
+        table { width:100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background: #f8f9fa; }
+        .btn-delete { background: #c62828; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
     </style>
 </head>
 
@@ -45,15 +54,33 @@
     <label>كلمة المرور:</label>
     <input type="password" id="password" placeholder="أدخل كلمة المرور الخاصة بالكنيسة">
     
-    <label>ملف الإكسيل (XLSX):</label>
-    <input type="file" id="fileInput" accept=".xlsx">
+    <div id="uploadArea">
+        <label>ملف الإكسيل (XLSX):</label>
+        <input type="file" id="fileInput" accept=".xlsx">
+        <button onclick="validateFile()">بدء فحص ورفع الملف</button>
+    </div>
+
+    <button class="btn-view" onclick="fetchMyFiles()">عرض الملفات التي رفعتها</button>
     
-    <button onclick="validateFile()">بدء فحص ورفع الملف</button>
     <div id="messageBox" class="message"></div>
+
+    <div id="historySection" class="history-section">
+        <label>ملفات الكنيسة المرفوعة:</label>
+        <table id="filesTable">
+            <thead>
+                <tr>
+                    <th>اسم الملف</th>
+                    <th>التاريخ</th>
+                    <th>إجراء</th>
+                </tr>
+            </thead>
+            <tbody id="filesTableBody"></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw335BzjbwMFg3M1LcjEe_W_4iC7TtLyfDUPQrJOwZ0IY6o79VELaA0tbOR5hH2sHK6/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwZFebwyu9vHIADQ1Vk5-lv63--PduTzC3yWJ8TOXf-fQPfYNfxpKDcZcuIRexIVyOl/exec";
 
 const churches = [
     "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي", "العذراء و الانبا بيشوي المنية", 
@@ -78,6 +105,12 @@ churches.forEach(name => {
     churchSelect.appendChild(option);
 });
 
+function applyShake(id) {
+    let el = document.getElementById(id);
+    el.classList.add('error-field');
+    setTimeout(() => el.classList.remove('error-field'), 500);
+}
+
 function showMessage(text, type) {
     let box = document.getElementById("messageBox");
     box.style.display = "block";
@@ -91,8 +124,13 @@ function validateFile() {
     let fileInput = document.getElementById("fileInput");
     let file = fileInput.files[0];
 
-    if(!churchName || !password || !file) {
-        showMessage("⚠️ برجاء إكمال كافة البيانات (الكنيسة، كلمة المرور، الملف).", "error");
+    let hasError = false;
+    if(!churchName) { applyShake("churchName"); hasError = true; }
+    if(!password) { applyShake("password"); hasError = true; }
+    if(!file) { applyShake("fileInput"); hasError = true; }
+
+    if(hasError) {
+        showMessage("⚠️ برجاء إكمال كافة البيانات المطلوبة.", "error");
         return;
     }
 
@@ -145,34 +183,23 @@ function checkData(rows, password, churchName, fileObject) {
         }
     }
 
-    // 1. فحص الأخطاء العادية
     if(errors.length > 0) {
-        showMessage("❌ تم العثور على أخطاء في البيانات:\n\n" + errors.slice(0, 8).join("\n"), "error");
+        showMessage("❌ أخطاء في البيانات:\n" + errors.slice(0, 5).join("\n"), "error");
         return;
     }
 
-    // 2. فحص التكرار (منع الرفع)
     let duplicates = Object.keys(nameInfo).filter(n => nameInfo[n].count > 1);
     if(duplicates.length > 0) {
-        let html = "❌ <b>خطأ تكرار:</b> تم العثور على أسماء مكررة في الملف.<br>برجاء مسحها من ملف الإكسيل الأصلي وحفظه ثم إعادة المحاولة:<br><br>";
-        duplicates.forEach(name => {
-            let info = nameInfo[name];
-            html += `<div class="duplicate-box">
-                <b>الاسم: ${name}</b><br>
-                ⚠️ متكرر ${info.count} مرات في الصفوف: (${info.rows.join(", ")})
-            </div>`;
-        });
-        showMessage(html, "error");
-        return; // توقف تام عن الرفع
+        showMessage("❌ يوجد أسماء مكررة في الملف، برجاء حذفها أولاً.", "error");
+        return;
     }
 
-    // 3. إذا كان كل شيء سليم، ارفع الملف الأصلي
     uploadNow(fileObject, password, churchName);
 }
 
 function uploadNow(file, password, churchName) {
     let reader = new FileReader();
-    showMessage("⏳ جاري التحقق من كلمة المرور ورفع الملف الأصلي...", "success");
+    showMessage("⏳ جاري التحقق والرفع...", "success");
 
     reader.onload = function(e) {
         let base64Data = e.target.result.split(',')[1];
@@ -189,16 +216,78 @@ function uploadNow(file, password, churchName) {
         .then(res => res.json())
         .then(data => {
             if(data.success) {
-                showMessage("✅ " + data.message, "success");
+                showMessage("✅ تم الرفع بنجاح!", "success");
                 document.getElementById("fileInput").value = "";
-                document.getElementById("password").value = "";
+                fetchMyFiles(); // تحديث الجدول تلقائياً
             } else {
-                showMessage("❌ عفواً: " + data.message, "error");
+                showMessage("❌ " + data.message, "error");
+                applyShake("password");
             }
         })
-        .catch(() => showMessage("❌ حدث خطأ ", "error"));
+        .catch(() => showMessage("❌ حدث خطأ في الاتصال", "error"));
     };
     reader.readAsDataURL(file);
+}
+
+// وظيفة جلب الملفات
+function fetchMyFiles() {
+    let church = document.getElementById("churchName").value;
+    let pass = document.getElementById("password").value;
+
+    if(!church || !pass) {
+        if(!church) applyShake("churchName");
+        if(!pass) applyShake("password");
+        showMessage("⚠️ أدخل الكنيسة والباسورد لعرض ملفاتك", "error");
+        return;
+    }
+
+    showMessage("⏳ جاري جلب ملفاتك...", "success");
+    fetch(WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: "fetch", church: church, password: pass })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            let html = "";
+            data.files.forEach(f => {
+                html += `<tr>
+                    <td>${f.name}</td>
+                    <td>${f.date}</td>
+                    <td><button class="btn-delete" onclick="deleteMyFile('${f.id}')">حذف</button></td>
+                </tr>`;
+            });
+            document.getElementById("filesTableBody").innerHTML = html;
+            document.getElementById("historySection").style.display = "block";
+            document.getElementById("messageBox").style.display = "none";
+        } else {
+            showMessage("❌ " + data.message, "error");
+            applyShake("password");
+        }
+    });
+}
+
+// وظيفة الحذف الفعلي
+function deleteMyFile(fileId) {
+    if(!confirm("هل أنت متأكد من حذف هذا الملف نهائياً؟")) return;
+    
+    let church = document.getElementById("churchName").value;
+    let pass = document.getElementById("password").value;
+
+    showMessage("⏳ جاري الحذف...", "success");
+    fetch(WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: "delete", fileId: fileId, church: church, password: pass })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            showMessage("✅ " + data.message, "success");
+            fetchMyFiles(); // تحديث الجدول
+        } else {
+            showMessage("❌ فشل الحذف: " + data.message, "error");
+        }
+    });
 }
 </script>
 </body>
