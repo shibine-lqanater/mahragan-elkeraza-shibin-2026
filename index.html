@@ -18,9 +18,23 @@
         .container { max-width:450px; margin:40px auto; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.1); }
         label { font-weight: 600; display: block; margin-bottom: 8px; color: #333; }
         input, select { width:100%; padding:14px; margin-bottom:15px; border-radius:8px; border:1px solid #ccc; font-size:15px; box-sizing: border-box; font-family: 'Cairo', sans-serif; transition: 0.3s; }
+        input:focus { border-color: #1565c0; outline: none; background: #f0f7ff; }
         button { width:100%; padding:14px; background:linear-gradient(135deg,#2e7d32,#1b5e20); color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer; margin-bottom:10px; font-weight: bold; }
         .btn-view { background: linear-gradient(135deg,#455a64,#263238); }
-        .message { margin-top:15px; font-size:14px; padding:15px; border-radius:8px; display:none; white-space: pre-line; line-height: 1.6; border: 1px solid transparent; }
+        
+        /* التعديل: إضافة Scroll لمنطقة الرسائل والأخطاء */
+        .message { 
+            margin-top:15px; 
+            font-size:14px; 
+            padding:15px; 
+            border-radius:8px; 
+            display:none; 
+            white-space: pre-line; 
+            line-height: 1.6; 
+            border: 1px solid transparent; 
+            max-height: 200px; /* طول محدد */
+            overflow-y: auto;  /* تفعيل السكرول */
+        }
         .error { background:#ffe5e5; color:#c62828; border-color: #f5c2c2; }
         .success { background:#e8f5e9; color:#2e7d32; border-color: #c3e6cb; }
         
@@ -28,11 +42,17 @@
         .error-field { border: 2px solid #ff0000 !important; animation: shake 0.4s ease-in-out; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
 
-        /* ستايل الجدول */
+        /* التعديل: ستايل الجدول مع ميزة الـ Scroll */
         .history-section { margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px; display:none; }
-        table { width:100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        .table-scroll { 
+            max-height: 300px; /* طول محدد لجدول الملفات */
+            overflow-y: auto; 
+            margin-top: 10px;
+            border: 1px solid #ddd;
+        }
+        table { width:100%; border-collapse: collapse; font-size: 13px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        th { background: #f8f9fa; }
+        th { background: #f8f9fa; position: sticky; top: 0; z-index: 1; } /* جعل رأس الجدول ثابتاً عند السكرول */
         .btn-delete { background: #c62828; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
     </style>
 </head>
@@ -46,10 +66,9 @@
 </div>
 
 <div class="container">
-    <label>اختر كنيستك:</label>
-    <select id="churchName">
-        <option value="">-- اضغط هنا لاختيار الكنيسة --</option>
-    </select>
+    <label>اختر الكنيسة:</label>
+    <input list="churchesList" id="churchName" placeholder="🔍 ابدأ بكتابة اسم الكنيسة..." autocomplete="off">
+    <datalist id="churchesList"></datalist>
     
     <label>كلمة المرور:</label>
     <input type="password" id="password" placeholder="أدخل كلمة المرور الخاصة بالكنيسة">
@@ -60,27 +79,30 @@
         <button onclick="validateFile()">بدء فحص ورفع الملف</button>
     </div>
 
-    <button class="btn-view" onclick="fetchMyFiles()">عرض الملفات التي رفعتها</button>
+    <button class="btn-view" onclick="fetchMyFiles()">عرض الملفات التي رفعتها (للحذف)</button>
     
     <div id="messageBox" class="message"></div>
 
     <div id="historySection" class="history-section">
         <label>ملفات الكنيسة المرفوعة:</label>
-        <table id="filesTable">
-            <thead>
-                <tr>
-                    <th>اسم الملف</th>
-                    <th>التاريخ</th>
-                    <th>إجراء</th>
-                </tr>
-            </thead>
-            <tbody id="filesTableBody"></tbody>
-        </table>
+        <div class="table-scroll">
+            <table id="filesTable">
+                <thead>
+                    <tr>
+                        <th>اسم الملف</th>
+                        <th>العدد</th>
+                        <th>التاريخ</th>
+                        <th>إجراء</th>
+                    </tr>
+                </thead>
+                <tbody id="filesTableBody"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwZFebwyu9vHIADQ1Vk5-lv63--PduTzC3yWJ8TOXf-fQPfYNfxpKDcZcuIRexIVyOl/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzSM2KRxCrolp9ST6iTOg5VCn2LZAIJNpsPrvELp5_QjlB0mxUVx5OnCwVkIEYNrH99/exec";
 
 const churches = [
     "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي", "العذراء و الانبا بيشوي المنية", 
@@ -97,12 +119,11 @@ const churches = [
     "مارجرجس ابو زعبل", "مارجرجس شبين القناطر", "مذبح الامير تادرس الخصوص"
 ];
 
-const churchSelect = document.getElementById('churchName');
+const datalist = document.getElementById('churchesList');
 churches.forEach(name => {
     let option = document.createElement('option');
     option.value = name;
-    option.textContent = name;
-    churchSelect.appendChild(option);
+    datalist.appendChild(option);
 });
 
 function applyShake(id) {
@@ -116,6 +137,7 @@ function showMessage(text, type) {
     box.style.display = "block";
     box.className = "message " + type;
     box.innerHTML = text;
+    box.scrollTop = 0; 
 }
 
 function validateFile() {
@@ -125,12 +147,12 @@ function validateFile() {
     let file = fileInput.files[0];
 
     let hasError = false;
-    if(!churchName) { applyShake("churchName"); hasError = true; }
+    if(!churchName || !churches.includes(churchName)) { applyShake("churchName"); hasError = true; }
     if(!password) { applyShake("password"); hasError = true; }
     if(!file) { applyShake("fileInput"); hasError = true; }
 
     if(hasError) {
-        showMessage("⚠️ برجاء إكمال كافة البيانات المطلوبة.", "error");
+        showMessage("⚠️ برجاء اختيار كنيسة صحيحة وإكمال البيانات.", "error");
         return;
     }
 
@@ -146,14 +168,15 @@ function validateFile() {
 }
 
 function checkData(rows, password, churchName, fileObject) {
-    let errors = [];
+    let allErrors = []; // مصفوفة واحدة تجمع كل أنواع الأخطاء
     let today = new Date();
     let nameInfo = {};
+    let validCount = 0;
 
     for(let i=2; i < rows.length; i++) {
         let row = rows[i];
         let rowNumber = i + 1;
-        let name = row[0] ? row[0].toString().trim() : "";
+        let name = row[0] ? row[0].toString().trim().replace(/\s+/g, ' ') : "";
         if(!name) continue;
 
         if (!nameInfo[name]) { nameInfo[name] = { count: 0, rows: [] }; }
@@ -166,38 +189,43 @@ function checkData(rows, password, churchName, fileObject) {
         let year = parseInt(row[5]);
         let level1 = row[6] ? row[6].toString().trim() : "";
 
-        if(name.split(" ").filter(p=>p).length < 3) errors.push(`📍 الصف ${rowNumber}: الاسم يجب أن يكون ثلاثياً.`);
-        if(/\d/.test(name)) errors.push(`📍 الصف ${rowNumber}: الاسم يحتوي على أرقام.`);
-        if(gender !== "ذكر" && gender !== "انثى") errors.push(`📍 الصف ${rowNumber}: برجاء تحديد النوع (ذكر أو انثى).`);
+        // فحص الأخطاء وإضافتها للمصفوفة الشاملة
+        if(name.split(" ").filter(p=>p).length < 3) allErrors.push(`📍 الصف ${rowNumber}: الاسم يجب أن يكون ثلاثياً.`);
+        if(/\d/.test(name)) allErrors.push(`📍 الصف ${rowNumber}: الاسم يحتوي على أرقام.`);
+        if(gender !== "ذكر" && gender !== "انثى") allErrors.push(`📍 الصف ${rowNumber}: برجاء تحديد النوع (ذكر أو انثى).`);
         
         if(!day || !month || !year) {
-            errors.push(`📍 الصف ${rowNumber}: تاريخ الميلاد غير مكتمل.`);
+            allErrors.push(`📍 الصف ${rowNumber}: تاريخ الميلاد غير مكتمل.`);
         } else {
             let birth = new Date(year, month - 1, day);
             let age = today.getFullYear() - year;
-            if(birth >= today || age < 3 || age > 90) errors.push(`📍 الصف ${rowNumber}: السن غير منطقي.`);
+            if(birth >= today || age < 3 || age > 90) allErrors.push(`📍 الصف ${rowNumber}: السن غير منطقي.`);
         }
         
         if(!level1 || level1.includes("اختر")) {
-            errors.push(`📍 الصف ${rowNumber}: رجاء ادخال المرحلة و المسابقة فى أول خانة من خانات المسابقات.`);
+            allErrors.push(`📍 الصف ${rowNumber}: رجاء ادخال المرحلة والمسابقة.`);
         }
+        validCount++;
     }
 
-    if(errors.length > 0) {
-        showMessage("❌ أخطاء في البيانات:\n" + errors.slice(0, 5).join("\n"), "error");
-        return;
-    }
-
+    // إضافة أخطاء التكرار إلى نفس المصفوفة الشاملة
     let duplicates = Object.keys(nameInfo).filter(n => nameInfo[n].count > 1);
     if(duplicates.length > 0) {
-        showMessage("❌ يوجد أسماء مكررة في الملف، برجاء حذفها أولاً.", "error");
+        duplicates.forEach(name => {
+            allErrors.push(`⚠️ الاسم: "${name}" مكرر في الصفوف: (${nameInfo[name].rows.join(", ")})`);
+        });
+    }
+
+    // الآن نظهر كل الأخطاء (بيانات + تكرار) معاً في صندوق السكرول
+    if(allErrors.length > 0) {
+        showMessage("❌ تم العثور على أخطاء وملاحظات:\n" + allErrors.join("\n"), "error");
         return;
     }
 
-    uploadNow(fileObject, password, churchName);
+    uploadNow(fileObject, password, churchName, validCount);
 }
 
-function uploadNow(file, password, churchName) {
+function uploadNow(file, password, churchName, count) {
     let reader = new FileReader();
     showMessage("⏳ جاري التحقق والرفع...", "success");
 
@@ -210,15 +238,16 @@ function uploadNow(file, password, churchName) {
                 mimeType: file.type,
                 fileData: base64Data,
                 church: churchName,
-                password: password
+                password: password,
+                count: count
             })
         })
         .then(res => res.json())
         .then(data => {
             if(data.success) {
-                showMessage("✅ تم الرفع بنجاح!", "success");
+                showMessage("✅ تم رفع " + count + " مقيد بنجاح!", "success");
                 document.getElementById("fileInput").value = "";
-                fetchMyFiles(); // تحديث الجدول تلقائياً
+                fetchMyFiles();
             } else {
                 showMessage("❌ " + data.message, "error");
                 applyShake("password");
@@ -229,7 +258,6 @@ function uploadNow(file, password, churchName) {
     reader.readAsDataURL(file);
 }
 
-// وظيفة جلب الملفات
 function fetchMyFiles() {
     let church = document.getElementById("churchName").value;
     let pass = document.getElementById("password").value;
@@ -253,6 +281,7 @@ function fetchMyFiles() {
             data.files.forEach(f => {
                 html += `<tr>
                     <td>${f.name}</td>
+                    <td><b>${f.count || '0'}</b></td>
                     <td>${f.date}</td>
                     <td><button class="btn-delete" onclick="deleteMyFile('${f.id}')">حذف</button></td>
                 </tr>`;
@@ -267,7 +296,6 @@ function fetchMyFiles() {
     });
 }
 
-// وظيفة الحذف الفعلي
 function deleteMyFile(fileId) {
     if(!confirm("هل أنت متأكد من حذف هذا الملف نهائياً؟")) return;
     
@@ -283,7 +311,7 @@ function deleteMyFile(fileId) {
     .then(data => {
         if(data.success) {
             showMessage("✅ " + data.message, "success");
-            fetchMyFiles(); // تحديث الجدول
+            fetchMyFiles();
         } else {
             showMessage("❌ فشل الحذف: " + data.message, "error");
         }
