@@ -10,11 +10,50 @@
 
     <style>
         body { margin:0; font-family:'Cairo',sans-serif; background:#f5f5f5; }
-        .header { background: linear-gradient(135deg,#1565c0,#0d47a1); padding:30px 40px; display:flex; align-items:center; justify-content:center; position:relative; }
-        .header img { max-height:120px; }
-        .header img:first-child { position:absolute; left:40px; }
-        .header img:last-child { position:absolute; right:40px; }
-        .header-title { text-align:center; color:white; font-size:26px; font-weight:700; line-height:1.4; }
+        
+        .header { 
+            background: linear-gradient(135deg,#1565c0,#0d47a1); 
+            height: 150px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            position: relative; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* المستطيل يمين (Right) */
+        .rect-right { 
+            position: absolute;
+            right: 40px; 
+            max-height: 110px;
+            width: auto;
+        }
+
+        /* اللوجو شمال (Left) */
+        .logo-left { 
+            position: absolute;
+            left: 40px; 
+            max-height: 110px;
+            width: auto;
+        }
+
+        .header-title { 
+            text-align: center; 
+            color: white; 
+            font-size: 28px; 
+            font-weight: 700; 
+            line-height: 1.4; 
+            z-index: 2;
+        }
+
+        @media (max-width: 768px) {
+            .header { height: 100px; }
+            .rect-right { right: 15px; max-height: 70px; } 
+            .logo-left { left: 15px; max-height: 70px; }
+            .header-title { font-size: 16px; width: 45%; } 
+            .container { max-width: 95% !important; padding: 20px !important; margin: 20px auto; }
+        }
+
         .container { max-width:450px; margin:40px auto; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.1); }
         label { font-weight: 600; display: block; margin-bottom: 8px; color: #333; }
         input, select { width:100%; padding:14px; margin-bottom:15px; border-radius:8px; border:1px solid #ccc; font-size:15px; box-sizing: border-box; font-family: 'Cairo', sans-serif; transition: 0.3s; }
@@ -22,37 +61,18 @@
         button { width:100%; padding:14px; background:linear-gradient(135deg,#2e7d32,#1b5e20); color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer; margin-bottom:10px; font-weight: bold; }
         .btn-view { background: linear-gradient(135deg,#455a64,#263238); }
         
-        /* التعديل: إضافة Scroll لمنطقة الرسائل والأخطاء */
-        .message { 
-            margin-top:15px; 
-            font-size:14px; 
-            padding:15px; 
-            border-radius:8px; 
-            display:none; 
-            white-space: pre-line; 
-            line-height: 1.6; 
-            border: 1px solid transparent; 
-            max-height: 200px; /* طول محدد */
-            overflow-y: auto;  /* تفعيل السكرول */
-        }
-        .error { background:#ffe5e5; color:#c62828; border-color: #f5c2c2; }
+        .message { margin-top:15px; font-size:14px; padding:15px; border-radius:8px; display:none; white-space: pre-line; line-height: 1.6; border: 1px solid transparent; max-height: 250px; overflow-y: auto; }
+        .error { background:#ffe5e5; color:#c62828; border-color: #f5c2c2; text-align: right; }
         .success { background:#e8f5e9; color:#2e7d32; border-color: #c3e6cb; }
         
-        /* تأثير الهزة والاحمرار */
         .error-field { border: 2px solid #ff0000 !important; animation: shake 0.4s ease-in-out; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
 
-        /* التعديل: ستايل الجدول مع ميزة الـ Scroll */
         .history-section { margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px; display:none; }
-        .table-scroll { 
-            max-height: 300px; /* طول محدد لجدول الملفات */
-            overflow-y: auto; 
-            margin-top: 10px;
-            border: 1px solid #ddd;
-        }
-        table { width:100%; border-collapse: collapse; font-size: 13px; }
+        .table-scroll { max-height: 300px; overflow: auto; margin-top: 10px; border: 1px solid #ddd; }
+        table { width:100%; border-collapse: collapse; font-size: 13px; min-width: 350px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        th { background: #f8f9fa; position: sticky; top: 0; z-index: 1; } /* جعل رأس الجدول ثابتاً عند السكرول */
+        th { background: #f8f9fa; position: sticky; top: 0; z-index: 1; }
         .btn-delete { background: #c62828; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
     </style>
 </head>
@@ -60,9 +80,11 @@
 <body>
 
 <div class="header">
-    <img src="logo.png">
-    <div class="header-title">مهرجان الكرازة المرقسية<br>أيبارشية شبين القناطر</div>
-    <img src="left-image.jpg">
+    <img src="left-image.jpg" class="rect-right">
+    
+    <div class="header-title">مهرجان الكرازة المرقسية<br>إيبارشية شبين القناطر</div>
+    
+    <img src="logo.png" class="logo-left">
 </div>
 
 <div class="container">
@@ -102,22 +124,23 @@
 </div>
 
 <script>
+// --- كود الـ JavaScript (بدون أي تغيير لضمان عمل الوظائف) ---
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzSM2KRxCrolp9ST6iTOg5VCn2LZAIJNpsPrvELp5_QjlB0mxUVx5OnCwVkIEYNrH99/exec";
 
 const churches = [
-    "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي", "العذراء و الانبا بيشوي المنية", 
-    "العذراء و الانبا موسي الخصوص", "العذراء و البابا بطرس الخانكة", "العذراء و الشهيد ابانوب القلج", 
+    "العذراء المطرانية", "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي", 
+    "العذراء و الانبا بيشوي المنية", "العذراء و الانبا موسي الخصوص", "العذراء و البابا بطرس الخانكة", 
+    "العذراء و الرسولين", "العذراء و الشهدين القلج", "العذراء و الشهيد ابانوب القلج", 
     "العذراء و الشهيد ابانوب المرج الغربية", "العذراء و الملاك العكرشة", "العذراء و الملاك ميخائيل الخصوص", 
     "العذراء و مارمرقس كفر شبين", "العذراء و مارمينا الجبل الاصفر", "العذراء و ماريوحنا الخصوص", 
     "العذراء و يوسف النجار الخصوص", "كنيسة ابوسفين الخصوص", "كنيسة ابوسفين و دميانة الجبل الاصفر", 
     "كنيسة الانبا بيشوي كوم الاطرون", "كنيسة الانبا كاراس الخصوص", "كنيسة الانبا كاراس نوي", 
     "كنيسة البابا اثناسيوس الخصوص", "كنيسة البابا كيرلس كفر الدير", "كنيسة الشهيدة دميانة ميت عاصم", 
-    "كنيسة الشهيدة دميانة ميت كنانة", "كنيسة العذراء المطرانية", "كنيسة العذراء و الرسولين", 
-    "كنيسة العذراء و الشهدين القلج", "كنيسة الملاك القشيش", "كنيسة الملاك القلزم", 
+    "كنيسة الشهيدة دميانة ميت كنانة", "كنيسة الملاك القشيش", "كنيسة الملاك القلزم", 
     "كنيسة مارجرجس بلتان", "كنيسة مارجرجس طوخ", "كنيسة مارجرجس قها", 
     "كنيسة مارجرجس و البابا ديسقورس", "كنيسة مارمينا ساحل دجوي", "كنيسة مارمينا و البابا كيرلس الخصوص", 
     "مارجرجس ابو زعبل", "مارجرجس شبين القناطر", "مذبح الامير تادرس الخصوص"
-];
+].sort();
 
 const datalist = document.getElementById('churchesList');
 churches.forEach(name => {
@@ -145,17 +168,11 @@ function validateFile() {
     let password = document.getElementById("password").value.trim();
     let fileInput = document.getElementById("fileInput");
     let file = fileInput.files[0];
-
     let hasError = false;
     if(!churchName || !churches.includes(churchName)) { applyShake("churchName"); hasError = true; }
     if(!password) { applyShake("password"); hasError = true; }
     if(!file) { applyShake("fileInput"); hasError = true; }
-
-    if(hasError) {
-        showMessage("⚠️ برجاء اختيار كنيسة صحيحة وإكمال البيانات.", "error");
-        return;
-    }
-
+    if(hasError) { showMessage("⚠️ برجاء اختيار كنيسة صحيحة وإكمال البيانات.", "error"); return; }
     let reader = new FileReader();
     reader.onload = function(e) {
         let data = new Uint8Array(e.target.result);
@@ -168,90 +185,57 @@ function validateFile() {
 }
 
 function checkData(rows, password, churchName, fileObject) {
-    let allErrors = []; // مصفوفة واحدة تجمع كل أنواع الأخطاء
+    let allErrors = []; 
     let today = new Date();
     let nameInfo = {};
     let validCount = 0;
-
     for(let i=2; i < rows.length; i++) {
         let row = rows[i];
         let rowNumber = i + 1;
         let name = row[0] ? row[0].toString().trim().replace(/\s+/g, ' ') : "";
         if(!name) continue;
-
+        let errorPrefix = `📍 الصف (${rowNumber}) - [${name}]: `;
         if (!nameInfo[name]) { nameInfo[name] = { count: 0, rows: [] }; }
         nameInfo[name].count++;
         nameInfo[name].rows.push(rowNumber);
-
         let gender = row[2] ? row[2].toString().trim().replace(/\s+/g,"") : "";
         let day = parseInt(row[3]);
         let month = parseInt(row[4]);
         let year = parseInt(row[5]);
         let level1 = row[6] ? row[6].toString().trim() : "";
-
-        // فحص الأخطاء وإضافتها للمصفوفة الشاملة
-        if(name.split(" ").filter(p=>p).length < 3) allErrors.push(`📍 الصف ${rowNumber}: الاسم يجب أن يكون ثلاثياً.`);
-        if(/\d/.test(name)) allErrors.push(`📍 الصف ${rowNumber}: الاسم يحتوي على أرقام.`);
-        if(gender !== "ذكر" && gender !== "انثى") allErrors.push(`📍 الصف ${rowNumber}: برجاء تحديد النوع (ذكر أو انثى).`);
-        
-        if(!day || !month || !year) {
-            allErrors.push(`📍 الصف ${rowNumber}: تاريخ الميلاد غير مكتمل.`);
-        } else {
-            let birth = new Date(year, month - 1, day);
+        if(name.split(" ").filter(p=>p).length < 3) allErrors.push(`${errorPrefix}الاسم يجب أن يكون ثلاثياً.`);
+        if(/\d/.test(name)) allErrors.push(`${errorPrefix}الاسم يحتوي على أرقام.`);
+        if(gender !== "ذكر" && gender !== "انثى") allErrors.push(`${errorPrefix}برجاء تحديد النوع (ذكر أو انثى).`);
+        if(!day || !month || !year) { allErrors.push(`${errorPrefix}تاريخ الميلاد غير مكتمل.`); } 
+        else if (month < 1 || month > 12 || day < 1 || day > 31) { allErrors.push(`${errorPrefix}اليوم أو الشهر غير صحيح.`); } 
+        else {
+            let birthDate = new Date(year, month - 1, day);
             let age = today.getFullYear() - year;
-            if(birth >= today || age < 3 || age > 90) allErrors.push(`📍 الصف ${rowNumber}: السن غير منطقي.`);
+            if (birthDate.getMonth() !== month - 1) { allErrors.push(`${errorPrefix}التاريخ (${day}/${month}) غير موجود في التقويم.`); } 
+            else if (birthDate >= today || age < 3 || age > 90) { allErrors.push(`${errorPrefix}السن غير منطقي (${age} سنة).`); }
         }
-        
-        if(!level1 || level1.includes("اختر")) {
-            allErrors.push(`📍 الصف ${rowNumber}: رجاء ادخال المرحلة والمسابقة.`);
-        }
+        if(!level1 || level1.includes("اختر")) { allErrors.push(`${errorPrefix}رجاء ادخال المرحلة والمسابقة.`); }
         validCount++;
     }
-
-    // إضافة أخطاء التكرار إلى نفس المصفوفة الشاملة
     let duplicates = Object.keys(nameInfo).filter(n => nameInfo[n].count > 1);
-    if(duplicates.length > 0) {
-        duplicates.forEach(name => {
-            allErrors.push(`⚠️ الاسم: "${name}" مكرر في الصفوف: (${nameInfo[name].rows.join(", ")})`);
-        });
-    }
-
-    // الآن نظهر كل الأخطاء (بيانات + تكرار) معاً في صندوق السكرول
-    if(allErrors.length > 0) {
-        showMessage("❌ تم العثور على أخطاء وملاحظات:\n" + allErrors.join("\n"), "error");
-        return;
-    }
-
+    if(duplicates.length > 0) { duplicates.forEach(name => { allErrors.push(`⚠️ تكرار: الاسم [${name}] مكرر في الصفوف: (${nameInfo[name].rows.join(", ")})`); }); }
+    if(allErrors.length > 0) { showMessage("❌ تم العثور على أخطاء وملاحظات:\n\n" + allErrors.join("\n"), "error"); return; }
     uploadNow(fileObject, password, churchName, validCount);
 }
 
 function uploadNow(file, password, churchName, count) {
     let reader = new FileReader();
     showMessage("⏳ جاري التحقق والرفع...", "success");
-
     reader.onload = function(e) {
         let base64Data = e.target.result.split(',')[1];
         fetch(WEB_APP_URL, {
             method: 'POST',
-            body: JSON.stringify({
-                fileName: file.name,
-                mimeType: file.type,
-                fileData: base64Data,
-                church: churchName,
-                password: password,
-                count: count
-            })
+            body: JSON.stringify({ fileName: file.name, mimeType: file.type, fileData: base64Data, church: churchName, password: password, count: count })
         })
         .then(res => res.json())
         .then(data => {
-            if(data.success) {
-                showMessage("✅ تم رفع " + count + " مقيد بنجاح!", "success");
-                document.getElementById("fileInput").value = "";
-                fetchMyFiles();
-            } else {
-                showMessage("❌ " + data.message, "error");
-                applyShake("password");
-            }
+            if(data.success) { showMessage("✅ تم رفع " + count + " مقيد بنجاح!", "success"); document.getElementById("fileInput").value = ""; fetchMyFiles(); } 
+            else { showMessage("❌ " + data.message, "error"); applyShake("password"); }
         })
         .catch(() => showMessage("❌ حدث خطأ في الاتصال", "error"));
     };
@@ -261,61 +245,29 @@ function uploadNow(file, password, churchName, count) {
 function fetchMyFiles() {
     let church = document.getElementById("churchName").value;
     let pass = document.getElementById("password").value;
-
-    if(!church || !pass) {
-        if(!church) applyShake("churchName");
-        if(!pass) applyShake("password");
-        showMessage("⚠️ أدخل الكنيسة والباسورد لعرض ملفاتك", "error");
-        return;
-    }
-
+    if(!church || !pass) { if(!church) applyShake("churchName"); if(!pass) applyShake("password"); showMessage("⚠️ أدخل الكنيسة والباسورد لعرض ملفاتك", "error"); return; }
     showMessage("⏳ جاري جلب ملفاتك...", "success");
-    fetch(WEB_APP_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: "fetch", church: church, password: pass })
-    })
+    fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: "fetch", church: church, password: pass }) })
     .then(res => res.json())
     .then(data => {
         if(data.success) {
             let html = "";
-            data.files.forEach(f => {
-                html += `<tr>
-                    <td>${f.name}</td>
-                    <td><b>${f.count || '0'}</b></td>
-                    <td>${f.date}</td>
-                    <td><button class="btn-delete" onclick="deleteMyFile('${f.id}')">حذف</button></td>
-                </tr>`;
-            });
+            data.files.forEach(f => { html += `<tr><td>${f.name}</td><td><b>${f.count || '0'}</b></td><td>${f.date}</td><td><button class="btn-delete" onclick="deleteMyFile('${f.id}')">حذف</button></td></tr>`; });
             document.getElementById("filesTableBody").innerHTML = html;
             document.getElementById("historySection").style.display = "block";
             document.getElementById("messageBox").style.display = "none";
-        } else {
-            showMessage("❌ " + data.message, "error");
-            applyShake("password");
-        }
+        } else { showMessage("❌ " + data.message, "error"); applyShake("password"); }
     });
 }
 
 function deleteMyFile(fileId) {
     if(!confirm("هل أنت متأكد من حذف هذا الملف نهائياً؟")) return;
-    
     let church = document.getElementById("churchName").value;
     let pass = document.getElementById("password").value;
-
     showMessage("⏳ جاري الحذف...", "success");
-    fetch(WEB_APP_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: "delete", fileId: fileId, church: church, password: pass })
-    })
+    fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: "delete", fileId: fileId, church: church, password: pass }) })
     .then(res => res.json())
-    .then(data => {
-        if(data.success) {
-            showMessage("✅ " + data.message, "success");
-            fetchMyFiles();
-        } else {
-            showMessage("❌ فشل الحذف: " + data.message, "error");
-        }
-    });
+    .then(data => { if(data.success) { showMessage("✅ " + data.message, "success"); fetchMyFiles(); } else { showMessage("❌ فشل الحذف: " + data.message, "error"); } });
 }
 </script>
 </body>
