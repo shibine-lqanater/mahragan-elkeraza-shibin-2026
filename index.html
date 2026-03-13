@@ -48,6 +48,12 @@
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         th { background: #f8f9fa; position: sticky; top: 0; z-index: 1; }
         .btn-delete { background: #c62828; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+
+        /* استايل إضافي لنتائج البحث */
+        .search-box { display:none; background: #fff3e0; padding: 15px; border-radius: 10px; border-right: 5px solid #ff9800; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .result-card { background: white; padding: 12px; border-radius: 8px; margin-top: 8px; border: 1px solid #ffe0b2; font-size: 13px; }
+        .result-card b { color: #e65100; display: block; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
+        .btn-search { background: linear-gradient(135deg,#ff9800,#f57c00); margin-bottom: 5px; }
     </style>
 </head>
 
@@ -77,6 +83,16 @@
     
     <div id="messageBox" class="message"></div>
 
+    <div id="searchBox" class="search-box">
+        <label style="color: #e65100;">🔍 البحث عن مشترك:</label>
+        <input type="text" id="searchNameInput" placeholder="اكتب اسم الشخص..." style="margin-bottom:10px;">
+        <select id="searchStageInput" style="margin-bottom:10px;">
+            <option value="">-- كل المراحل --</option>
+        </select>
+        <button class="btn-search" onclick="searchInNames()">بحث الآن</button>
+        <div id="searchResults"></div>
+    </div>
+
     <div id="statsCard" class="stats-card">
         <label style="color:#0d47a1; margin:0;">📊 إحصائيات المراحل (تراكمي):</label>
         <div id="statsGrid" class="stats-grid"></div>
@@ -102,9 +118,8 @@
 </div>
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyEI9RSlND8kR-xcxFbr5R1je92HzQ7jHbzd88GbPi-VyofeaTFILDFQ5AUxizu4QHZ/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz7baZgNh9acApHENBSGSOY8tAPJzk-jwY4_tDUlsPpEM3T1sY0iTZhkj1RE2lz9bFD/exec";
 
-// القائمة الثابتة للمراحل كما طلبت
 const fixedStages = [
     "حضانة",
     "أولى وثانية",
@@ -124,8 +139,16 @@ const fixedStages = [
     "الحرفيون"
 ];
 
-// قائمة الكنائس الأصلية
-const churches = ["العذراء المطرانية", "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي", "العذراء و الانبا بيشوي المنية", "العذراء و الانبا موسي الخصوص", "العذراء و البابا بطرس الخانكة", "العذراء و الرسولين", "العذراء و الشهدين القلج", "العذراء و الشهيد ابانوب القلج", "العذراء و الشهيد ابانوب المرج الغربية", "العذراء و الملاك العكرشة", "العذراء و الملاك ميخائيل الخصوص", "العذراء و مارمرقس كفر شبين", "العذراء و مارمينا الجبل الاصفر", "العذراء و ماريوحنا الخصوص", "العذراء و يوسف النجار الخصوص", "كنيسة ابوسفين الخصوص", "كنيسة ابوسفين و دميانة الجبل الاصفر", "كنيسة الانبا بيشوي كوم الاطرون", "كنيسة الانبا كاراس الخصوص", "كنيسة الانبا كاراس نوي", "كنيسة البابا اثناسيوس الخصوص", "كنيسة البابا كيرلس كفر الدير", "كنيسة الشهيدة دميانة ميت عاصم", "كنيسة الشهيدة دميانة ميت كنانة", "كنيسة الملاك القشيش", "كنيسة الملاك القلزم", "كنيسة مارجرجس بلتان", "كنيسة مارجرجس طوخ", "كنيسة مارجرجس قها", "كنيسة مارجرجس و البابا ديسقورس", "كنيسة مارمينا ساحل دجوي", "كنيسة مارمينا و البابا كيرلس الخصوص", "مارجرجس ابو زعبل", "مارجرجس شبين القناطر", "مذبح الامير تادرس الخصوص"].sort();
+// إضافة المراحل لقائمة البحث
+const searchStageSelect = document.getElementById("searchStageInput");
+fixedStages.forEach(s => {
+    let opt = document.createElement("option");
+    opt.value = s;
+    opt.innerText = s;
+    searchStageSelect.appendChild(opt);
+});
+
+const churches = ["كنيسة العذراء المطرانية", "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي", "العذراء و الانبا بيشوي المنية", "العذراء و الانبا موسي الخصوص", "العذراء و البابا بطرس الخانكة", "العذراء و الرسولين", "العذراء و الشهدين القلج", "العذراء و الشهيد ابانوب القلج", "العذراء و الشهيد ابانوب المرج الغربية", "العذراء و الملاك العكرشة", "العذراء و الملاك ميخائيل الخصوص", "العذراء و مارمرقس كفر شبين", "العذراء و مارمينا الجبل الاصفر", "العذراء و ماريوحنا الخصوص", "العذراء و يوسف النجار الخصوص", "كنيسة ابوسفين الخصوص", "كنيسة ابوسفين و دميانة الجبل الاصفر", "كنيسة الانبا بيشوي كوم الاطرون", "كنيسة الانبا كاراس الخصوص", "كنيسة الانبا كاراس نوي", "كنيسة البابا اثناسيوس الخصوص", "كنيسة البابا كيرلس كفر الدير", "كنيسة الشهيدة دميانة ميت عاصم", "كنيسة الشهيدة دميانة ميت كنانة", "كنيسة الملاك القشيش", "كنيسة الملاك القلزم", "كنيسة مارجرجس بلتان", "كنيسة مارجرجس طوخ", "كنيسة مارجرجس قها", "كنيسة مارجرجس و البابا ديسقورس", "كنيسة مارمينا ساحل دجوي", "كنيسة مارمينا و البابا كيرلس الخصوص", "مارجرجس ابو زعبل", "مارجرجس شبين القناطر", "مذبح الامير تادرس الخصوص"].sort();
 
 const datalist = document.getElementById('churchesList');
 churches.forEach(name => {
@@ -175,6 +198,8 @@ function checkData(rows, password, churchName, fileObject) {
     let nameInfo = {};
     let currentFileLevels = {}; 
     let validCount = 0;
+    
+    let descriptionData = [];
 
     for(let i=2; i < rows.length; i++) {
         let row = rows[i];
@@ -188,9 +213,9 @@ function checkData(rows, password, churchName, fileObject) {
         nameInfo[name].rows.push(rowNumber);
 
         let gender = row[2] ? row[2].toString().trim().replace(/\s+/g,"") : "";
-        let day = parseInt(row[3]);
-        let month = parseInt(row[4]);
-        let year = parseInt(row[5]);
+        let day = row[3];
+        let month = row[4];
+        let year = row[5];
         let level1 = row[6] ? row[6].toString().trim() : "";
 
         if(name.split(" ").filter(p=>p).length < 3) allErrors.push(`${errorPrefix}الاسم يجب أن يكون ثلاثياً.`);
@@ -206,6 +231,8 @@ function checkData(rows, password, churchName, fileObject) {
         }
         if(!level1 || level1.includes("اختر")) { allErrors.push(`${errorPrefix}رجاء ادخال المرحلة والمسابقة.`); }
 
+        descriptionData.push(`${name} | ${level1} | تاريخ: ${day}/${month}/${year}`);
+
         currentFileLevels[level1] = (currentFileLevels[level1] || 0) + 1;
         validCount++;
     }
@@ -215,28 +242,37 @@ function checkData(rows, password, churchName, fileObject) {
     
     if(allErrors.length > 0) { showMessage("❌ أخطاء في الملف:\n\n" + allErrors.join("\n"), "error"); return; }
     
-    uploadNow(fileObject, password, churchName, validCount, currentFileLevels);
+    uploadNow(fileObject, password, churchName, validCount, currentFileLevels, descriptionData.join("\n"));
 }
 
-function uploadNow(file, password, churchName, count, levels) {
+function uploadNow(file, password, churchName, count, levels, desc) {
     let reader = new FileReader();
     showMessage("⏳ جاري الرفع...", "success");
     reader.onload = function(e) {
         let base64Data = e.target.result.split(',')[1];
         fetch(WEB_APP_URL, {
             method: 'POST',
-            body: JSON.stringify({ fileName: file.name, fileData: base64Data, church: churchName, password: password, count: count, levels: levels })
+            body: JSON.stringify({ 
+                fileName: file.name, 
+                fileData: base64Data, 
+                church: churchName, 
+                password: password, 
+                count: count, 
+                levels: levels,
+                description: desc 
+            })
         })
         .then(res => res.json())
         .then(data => {
-            if(data.success) { showMessage("✅ تم الرفع بنجاح!", "success"); fetchData(); }
+            if(data.success) { showMessage("✅ تم الرفع بنجاح!", "success"); }
             else { showMessage("❌ " + data.message, "error"); }
         });
     };
     reader.readAsDataURL(file);
 }
 
-// دالة العرض المحدثة لتعمل بشكل تراكمي على القائمة الثابتة
+let cachedFiles = []; 
+
 function fetchMyFiles() {
     let church = document.getElementById("churchName").value;
     let pass = document.getElementById("password").value;
@@ -247,10 +283,9 @@ function fetchMyFiles() {
     .then(res => res.json())
     .then(data => {
         if(data.success) {
+            cachedFiles = data.files; 
             let html = "";
             let totalOverall = 0;
-            
-            // تهيئة العداد التراكمي بناءً على القائمة الثابتة
             let stageStats = {};
             fixedStages.forEach(s => stageStats[s] = 0);
 
@@ -260,13 +295,12 @@ function fetchMyFiles() {
 
                 if(f.levels) {
                     for(let fullKey in f.levels) {
-                        // استخراج اسم المرحلة (قبل السلاش)
-                        let stageName = fullKey.split('/')[0].trim();
-                        
-                        // الجمع التراكمي إذا كانت المرحلة ضمن قائمتنا
-                        if(stageStats.hasOwnProperty(stageName)) {
-                            stageStats[stageName] += parseInt(f.levels[fullKey]);
-                        }
+                        let textInExcel = fullKey.trim();
+                        fixedStages.forEach(fixedS => {
+                            if(textInExcel.includes(fixedS)) {
+                                stageStats[fixedS] += parseInt(f.levels[fullKey]);
+                            }
+                        });
                     }
                 }
             });
@@ -274,11 +308,9 @@ function fetchMyFiles() {
             document.getElementById("filesTableBody").innerHTML = html;
             document.getElementById("totalChurchCount").innerText = totalOverall;
             
-            // بناء لوحة الإحصائيات بالترتيب والأسماء المطلوبة
             let statsHtml = "";
             fixedStages.forEach(stage => {
                 let count = stageStats[stage];
-                // لون مميز لو العدد أكبر من صفر
                 let style = count > 0 ? "color:#1b5e20; border-color:#2e7d32;" : "color:#999; border-color:#ddd;";
                 statsHtml += `<div class="stat-item" style="${style}">🔹 ${stage}: <b>${count}</b></div>`;
             });
@@ -286,9 +318,42 @@ function fetchMyFiles() {
             document.getElementById("statsGrid").innerHTML = statsHtml;
             document.getElementById("statsCard").style.display = "block";
             document.getElementById("historySection").style.display = "block";
+            document.getElementById("searchBox").style.display = "block"; 
             document.getElementById("messageBox").style.display = "none";
         } else { showMessage("❌ " + data.message, "error"); }
     });
+}
+
+// دالة البحث (تمت إضافة زر التشغيل)
+function searchInNames() {
+    let nameVal = document.getElementById("searchNameInput").value.trim();
+    let stageVal = document.getElementById("searchStageInput").value;
+    let resultsDiv = document.getElementById("searchResults");
+    
+    if (nameVal === "" && stageVal === "") {
+        resultsDiv.innerHTML = "<div style='color:orange; font-size:12px;'>⚠️ برجاء كتابة اسم أو اختيار مرحلة أولاً.</div>";
+        return;
+    }
+
+    let resultsHtml = "";
+    let found = false;
+
+    cachedFiles.forEach(file => {
+        if (file.description) {
+            let people = file.description.split("\n");
+            people.forEach(personLine => {
+                let matchName = nameVal === "" || personLine.includes(nameVal);
+                let matchStage = stageVal === "" || personLine.includes(stageVal);
+                
+                if (matchName && matchStage && personLine.trim() !== "") {
+                    found = true;
+                    resultsHtml += `<div class="result-card"><b>👤 ${personLine}</b><small>📂 المصدر: ${file.name}</small></div>`;
+                }
+            });
+        }
+    });
+
+    resultsDiv.innerHTML = found ? resultsHtml : "<div style='color:red; font-size:12px;'>❌ لا توجد نتائج مطابقة</div>";
 }
 
 function deleteMyFile(fileId) {
