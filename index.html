@@ -49,10 +49,9 @@
         th { background: #f8f9fa; position: sticky; top: 0; z-index: 1; }
         .btn-delete { background: #c62828; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
 
-        /* استايل إضافي لنتائج البحث */
         .search-box { display:none; background: #fff3e0; padding: 15px; border-radius: 10px; border-right: 5px solid #ff9800; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .result-card { background: white; padding: 12px; border-radius: 8px; margin-top: 8px; border: 1px solid #ffe0b2; font-size: 13px; }
-        .result-card b { color: #e65100; display: block; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
+        .result-card { background: white; padding: 12px; border-radius: 8px; margin-top: 8px; border: 1px solid #ffe0b2; font-size: 13px; text-align: right; line-height: 1.6; }
+        .result-card b { color: #e65100; }
         .btn-search { background: linear-gradient(135deg,#ff9800,#f57c00); margin-bottom: 5px; }
     </style>
 </head>
@@ -139,7 +138,6 @@ const fixedStages = [
     "الحرفيون"
 ];
 
-// إضافة المراحل لقائمة البحث
 const searchStageSelect = document.getElementById("searchStageInput");
 fixedStages.forEach(s => {
     let opt = document.createElement("option");
@@ -148,7 +146,7 @@ fixedStages.forEach(s => {
     searchStageSelect.appendChild(opt);
 });
 
-const churches = ["كنيسة العذراء المطرانية", "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي", "العذراء و الانبا بيشوي المنية", "العذراء و الانبا موسي الخصوص", "العذراء و البابا بطرس الخانكة", "العذراء و الرسولين", "العذراء و الشهدين القلج", "العذراء و الشهيد ابانوب القلج", "العذراء و الشهيد ابانوب المرج الغربية", "العذراء و الملاك العكرشة", "العذراء و الملاك ميخائيل الخصوص", "العذراء و مارمرقس كفر شبين", "العذراء و مارمينا الجبل الاصفر", "العذراء و ماريوحنا الخصوص", "العذراء و يوسف النجار الخصوص", "كنيسة ابوسفين الخصوص", "كنيسة ابوسفين و دميانة الجبل الاصفر", "كنيسة الانبا بيشوي كوم الاطرون", "كنيسة الانبا كاراس الخصوص", "كنيسة الانبا كاراس نوي", "كنيسة البابا اثناسيوس الخصوص", "كنيسة البابا كيرلس كفر الدير", "كنيسة الشهيدة دميانة ميت عاصم", "كنيسة الشهيدة دميانة ميت كنانة", "كنيسة الملاك القشيش", "كنيسة الملاك القلزم", "كنيسة مارجرجس بلتان", "كنيسة مارجرجس طوخ", "كنيسة مارجرجس قها", "كنيسة مارجرجس و البابا ديسقورس", "كنيسة مارمينا ساحل دجوي", "كنيسة مارمينا و البابا كيرلس الخصوص", "مارجرجس ابو زعبل", "مارجرجس شبين القناطر", "مذبح الامير تادرس الخصوص"].sort();
+const churches = ["كنيسة العذراء المطرانية", "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي", "العذراء و الانبا بيشوي المنية", "العذراء و الانبا موسي الخصوص", "العذراء و البابا بطرس الخانكة", "العذراء و الرسولين", "العذراء و الشهدين القلج", "العذراء و الشهيد ابانوب القلج", "العذراء و الشهيد ابانوب المرج الغربية", "العذراء و الملاك العكرشة", "العذراء و الملاك ميخائيل الخصوص", "العذراء و مارجرجس كفر شبين", "العذراء و مارمينا الجبل الاصفر", "العذراء و ماريوحنا الخصوص", "العذراء و يوسف النجار الخصوص", "كنيسة ابوسفين الخصوص", "كنيسة ابوسفين و دميانة الجبل الاصفر", "كنيسة الانبا بيشوي كوم الاطرون", "كنيسة الانبا كاراس الخصوص", "كنيسة الانبا كاراس نوي", "كنيسة البابا اثناسيوس الخصوص", "كنيسة البابا كيرلس كفر الدير", "كنيسة الشهيدة دميانة ميت عاصم", "كنيسة الشهيدة دميانة ميت كنانة", "كنيسة الملاك القشيش", "كنيسة الملاك القلزم", "كنيسة مارجرجس بلتان", "كنيسة مارجرجس طوخ", "كنيسة مارجرجس قها", "كنيسة مارجرجس و البابا ديسقورس", "كنيسة مارمينا ساحل دجوي", "كنيسة مارمينا و البابا كيرلس الخصوص", "مارجرجس ابو زعبل", "مارجرجس شبين القناطر", "مذبح الامير تادرس الخصوص"].sort();
 
 const datalist = document.getElementById('churchesList');
 churches.forEach(name => {
@@ -216,7 +214,17 @@ function checkData(rows, password, churchName, fileObject) {
         let day = row[3];
         let month = row[4];
         let year = row[5];
-        let level1 = row[6] ? row[6].toString().trim() : "";
+        
+        let allActivities = [];
+        for (let col = 6; col <= 13; col++) { 
+            let cellValue = row[col] ? row[col].toString().trim() : "";
+            if (cellValue !== "" && !cellValue.includes("ختر")) {
+                allActivities.push(cellValue);
+            }
+        }
+        
+        let level1 = allActivities[0] || ""; 
+        let activitiesText = allActivities.join(" ، "); 
 
         if(name.split(" ").filter(p=>p).length < 3) allErrors.push(`${errorPrefix}الاسم يجب أن يكون ثلاثياً.`);
         if(/\d/.test(name)) allErrors.push(`${errorPrefix}الاسم يحتوي على أرقام.`);
@@ -229,11 +237,13 @@ function checkData(rows, password, churchName, fileObject) {
             if (birthDate.getMonth() !== month - 1) { allErrors.push(`${errorPrefix}التاريخ غير موجود في التقويم.`); } 
             else if (age < 3 || age > 90) { allErrors.push(`${errorPrefix}السن غير منطقي (${age} سنة).`); }
         }
-        if(!level1 || level1.includes("اختر")) { allErrors.push(`${errorPrefix}رجاء ادخال المرحلة والمسابقة.`); }
+        if(!level1) { allErrors.push(`${errorPrefix}رجاء اختيار مرحلة ومسابقة واحدة على الأقل.`); }
 
-        descriptionData.push(`${name} | ${level1} | تاريخ: ${day}/${month}/${year}`);
+        descriptionData.push(`${name}*${activitiesText}*${day}/${month}/${year}`);
 
-        currentFileLevels[level1] = (currentFileLevels[level1] || 0) + 1;
+        if (level1) {
+            currentFileLevels[level1] = (currentFileLevels[level1] || 0) + 1;
+        }
         validCount++;
     }
 
@@ -324,7 +334,7 @@ function fetchMyFiles() {
     });
 }
 
-// دالة البحث (تمت إضافة زر التشغيل)
+// دالة البحث المحدثة لعرض كل مسابقة في سطر مستقل
 function searchInNames() {
     let nameVal = document.getElementById("searchNameInput").value.trim();
     let stageVal = document.getElementById("searchStageInput").value;
@@ -347,7 +357,27 @@ function searchInNames() {
                 
                 if (matchName && matchStage && personLine.trim() !== "") {
                     found = true;
-                    resultsHtml += `<div class="result-card"><b>👤 ${personLine}</b><small>📂 المصدر: ${file.name}</small></div>`;
+                    let parts = personLine.split("*");
+                    if(parts.length >= 3) {
+                        // تفكيك المسابقات المحفوظة بفاصلة " ، "
+                        let activities = parts[1].split(" ، ");
+                        let activitiesLines = "";
+                        activities.forEach(act => {
+                            if(act.trim()) {
+                                activitiesLines += `<div><b>🏆 المسابقات:</b> ${act.trim()}</div>`;
+                            }
+                        });
+
+                        resultsHtml += `
+                            <div class="result-card" style="border-right: 5px solid #ff9800;">
+                                <div><b>👤 الاسم:</b> ${parts[0]}</div>
+                                ${activitiesLines}
+                                <div><b>📅 تاريخ الميلاد:</b> ${parts[2]}</div>
+                                <div style="font-size:10px; color:#888; margin-top:5px; border-top:1px dashed #eee;">📂 الملف: ${file.name}</div>
+                            </div>`;
+                    } else {
+                        resultsHtml += `<div class="result-card"><b>👤 ${personLine}</b><br><small>📂 الملف: ${file.name}</small></div>`;
+                    }
                 }
             });
         }
