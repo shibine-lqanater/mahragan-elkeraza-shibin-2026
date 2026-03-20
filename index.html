@@ -117,7 +117,7 @@
 </div>
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwPC6-FNHMEnFB-iWkZQbNdp8kGLGw0x2qVshnlUYvqioFdYK9Z1EfEo5TeBxhbBcWP/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzmdjpL18vkcAgSQsJ33U10Wxop7QDdfb2BnRRxxq7BrRxswRZyY6C8r4qpeO8CFT-I/exec";
 
 const fixedStages = [
     "حضانة",
@@ -220,14 +220,30 @@ function checkData(rows, password, churchName, fileObject) {
             allErrors.push(`${errorPrefix}يجب اختيار مسابقة في الخانة الأولى .`);
         }
 
+        // --- التعديل الجديد: فحص تعدد المراحل في نفس السطر ---
         let allActivities = [];
+        let rowStages = []; // لتخزين المراحل المكتشفة في هذا الصف
+
         for (let col = 6; col <= 13; col++) { 
             let cellValue = row[col] ? row[col].toString().trim() : "";
             if (cellValue !== "" && !cellValue.includes("ختر")) {
                 allActivities.push(cellValue);
+                
+                // استخراج اسم المرحلة من الخانة (بناءً على القائمة الثابتة)
+                fixedStages.forEach(fs => {
+                    if (cellValue.includes(fs) && !rowStages.includes(fs)) {
+                        rowStages.push(fs);
+                    }
+                });
             }
         }
-        
+
+        // إذا وجدنا أكثر من مرحلة مختلفة في نفس الصف
+        if (rowStages.length > 1) {
+            allErrors.push(`${errorPrefix}تم اختيار مسابقات لمراحل مختلفة في نفس السطر (${rowStages.join(" و ")}). يجب أن يتبع الاسم مرحلة واحدة فقط.`);
+        }
+        // --- نهاية تعديل تعدد المراحل ---
+
         let level1 = allActivities[0] || ""; 
         let activitiesText = allActivities.join(" ، "); 
 
@@ -261,7 +277,6 @@ function checkData(rows, password, churchName, fileObject) {
     uploadNow(fileObject, password, churchName, validCount, currentFileLevels, descriptionData.join("\n"));
 }
 
-// --- التعديل يبدأ هنا لدعم كشف التكرار ---
 function uploadNow(file, password, churchName, count, levels, desc, ignoreDuplicate = false) {
     let reader = new FileReader();
     showMessage("⏳ جاري الفحص والرفع...", "success");
@@ -277,7 +292,7 @@ function uploadNow(file, password, churchName, count, levels, desc, ignoreDuplic
                 count: count, 
                 levels: levels,
                 description: desc,
-                ignoreDuplicate: ignoreDuplicate // إرسال حالة التجاهل للسيرفر
+                ignoreDuplicate: ignoreDuplicate 
             })
         })
         .then(res => res.json())
@@ -287,7 +302,6 @@ function uploadNow(file, password, churchName, count, levels, desc, ignoreDuplic
                 if(typeof fetchMyFiles === "function") fetchMyFiles();
             } 
             else if (data.duplicate) {
-                // نافذة تأكيد في حالة وجود تكرار
                 let msg = `⚠️ تنبيه تكرار!\n\n${data.message}\n\nهل تريد استكمال الرفع وتجاهل التكرار؟`;
                 if (confirm(msg)) {
                     uploadNow(file, password, churchName, count, levels, desc, true);
@@ -301,7 +315,6 @@ function uploadNow(file, password, churchName, count, levels, desc, ignoreDuplic
     };
     reader.readAsDataURL(file);
 }
-// --- نهاية التعديل ---
 
 let cachedFiles = []; 
 
@@ -327,6 +340,96 @@ function fetchMyFiles() {
 
                 if(f.levels) {
                     for(let fullKey in f.levels) {
+                        let textInExcel = fullKey.trim();
+                        fixedStages.forEach(fixedS => {
+                            if(textInExcel.includes(fixedS)) {
+                                stageStats[fixedS] += parseInt(f.levels[fullKey]);
+                            }
+                        });
+                    }
+                }
+            });
+
+            document.getElementById("filesTableBody").innerHTML = html;
+            document.getElementById("totalChurchCount").innerText = totalOverall;
+            
+            let statsHtml = "";
+            fixedStages.forEach(stage => {
+                let count = stageStats[stage];
+                let style = count > 0 ? "color:#1b5e20; border-color:#2e7d32;" : "color:#999; border-color:#ddd;";
+                statsHtml += `<div class="stat-item" style="${style}">🔹 ${stage}: <b>${count}</b></div>`;
+            });
+            
+            document.getElementById("statsGrid").innerHTML = statsHtml;
+            document.getElementById("statsCard").style.display = "block";
+            document.getElementById("historySection").style.display = "block";
+            document.getElementById("searchBox").style.display = "block"; 
+            document.getElementById("messageBox").style.display = "none";
+        } else { showMessage("❌ " + data.message, "error"); }
+    });
+}
+
+function searchInNames() {
+    let nameVal = document.getElementById("searchNameInput").value.trim();
+    let stageVal = document.getElementById("searchStageInput").value;
+    let resultsDiv = document.getElementById("searchResults");
+    
+    if (nameVal === "" && stageVal === "") {
+        resultsDiv.innerHTML = "<div style='color:orange; font-size:12px;'>⚠️ برجاء كتابة اسم أو اختيار مرحلة أولاً.</div>";
+        return;
+    }
+
+    let resultsHtml = "";
+    let found = false;
+
+    cachedFiles.forEach(file => {
+        if (file.description) {
+            let people = file.description.split("\n");
+            people.forEach(personLine => {
+                let matchName = nameVal === "" || personLine.includes(nameVal);
+                let matchStage = stageVal === "" || personLine.includes(stageVal);
+                
+                if (matchName && matchStage && personLine.trim() !== "") {
+                    found = true;
+                    let parts = personLine.split("*");
+                    if(parts.length >= 3) {
+                        let activities = parts[1].split(" ، ");
+                        let activitiesLines = "";
+                        activities.forEach(act => {
+                            if(act.trim()) {
+                                activitiesLines += `<div><b>🏆 المسابقات:</b> ${act.trim()}</div>`;
+                            }
+                        });
+
+                        resultsHtml += `
+                            <div class="result-card" style="border-right: 5px solid #ff9800;">
+                                <div><b>👤 الاسم:</b> ${parts[0]}</div>
+                                ${activitiesLines}
+                                <div><b>📅 تاريخ الميلاد:</b> ${parts[2]}</div>
+                                <div style="font-size:10px; color:#888; margin-top:5px; border-top:1px dashed #eee;">📂 الملف: ${file.name}</div>
+                            </div>`;
+                    } else {
+                        resultsHtml += `<div class="result-card"><b>👤 ${personLine}</b><br><small>📂 الملف: ${file.name}</small></div>`;
+                    }
+                }
+            });
+        }
+    });
+
+    resultsDiv.innerHTML = found ? resultsHtml : "<div style='color:red; font-size:12px;'>❌ لا توجد نتائج مطابقة</div>";
+}
+
+function deleteMyFile(fileId) {
+    if(!confirm("حذف نهائي؟")) return;
+    let church = document.getElementById("churchName").value;
+    let pass = document.getElementById("password").value;
+    fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: "delete", fileId: fileId, church: church, password: pass }) })
+    .then(res => res.json())
+    .then(data => { if(data.success) fetchMyFiles(); });
+}
+</script>
+</body>
+</html>{
                         let textInExcel = fullKey.trim();
                         fixedStages.forEach(fixedS => {
                             if(textInExcel.includes(fixedS)) {
