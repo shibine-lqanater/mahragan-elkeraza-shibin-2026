@@ -172,7 +172,6 @@ function closeModal() {
     }
 }
 
-// تعديل دالة الرسائل لتقبل خيار استثناء ملف الإكسيل
 function showMessage(text, type, ignoreFileCheck = false) {
     let box = document.getElementById("messageBox");
     box.style.display = "block";
@@ -184,7 +183,7 @@ function showMessage(text, type, ignoreFileCheck = false) {
 
     if (type === "error") {
         const inputIds = ["churchName", "password"];
-        if(!ignoreFileCheck) inputIds.push("fileInput"); // إضافة الملف فقط لو لم نكن في وضع "العرض"
+        if(!ignoreFileCheck) inputIds.push("fileInput");
 
         inputIds.forEach(id => {
             const el = document.getElementById(id);
@@ -237,7 +236,33 @@ function checkData(rows, password, churchName, fileObject) {
         nameInfo[name].rows.push(i + 1);
 
         let gender = row[2] ? row[2].toString().trim() : "";
-        let day = row[3]; let month = row[4]; let year = row[5];
+        
+        // --- تعديل شرط التاريخ المطور ---
+        let day = parseInt(row[3]); 
+        let month = parseInt(row[4]); 
+        let year = parseInt(row[5]);
+        let today = new Date();
+        
+        if (isNaN(day) || isNaN(month) || isNaN(year)) {
+            allErrors.push(`📍 صف ${i+1} [${name}]: تاريخ الميلاد ناقص أو غير صحيح.`);
+        } else {
+            let birthDate = new Date(year, month - 1, day);
+            if (birthDate.getFullYear() !== year || birthDate.getMonth() !== month - 1 || birthDate.getDate() !== day) {
+                allErrors.push(`📍 صف ${i+1} [${name}]: التاريخ غير منطقي (غير موجود بالتقويم).`);
+            } else if (birthDate > today) {
+                allErrors.push(`📍 صف ${i+1} [${name}]: التاريخ غير منطقي (تاريخ في المستقبل).`);
+            } else {
+                let age = today.getFullYear() - year;
+                let m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) { age--; }
+
+                if (age < 3 || age > 80) {
+                    allErrors.push(`📍 صف ${i+1} [${name}]: السن غير منطقي (${age} سنة). المسموح من 3 إلى 80 سنة.`);
+                }
+            }
+        }
+        // --- نهاية تعديل التاريخ ---
+
         let allActivities = [];
         let rowStages = [];
 
@@ -257,7 +282,6 @@ function checkData(rows, password, churchName, fileObject) {
         if (rowStages.length > 1) allErrors.push(`📍 صف ${i+1}: تداخل مراحل (${rowStages.join(" و ")}).`);
         if (name.split(" ").filter(p=>p).length < 3) allErrors.push(`📍 صف ${i+1}: الاسم ليس ثلاثياً.`);
         if (gender !== "ذكر" && gender !== "انثى") allErrors.push(`📍 صف ${i+1}: لم يتم تحديد النوع.`);
-        if (!day || !month || !year) allErrors.push(`📍 صف ${i+1}: تاريخ الميلاد ناقص.`);
         if (!allActivities[0]) allErrors.push(`📍 صف ${i+1}: لم يتم اختيار مسابقة.`);
 
         descriptionData.push(`${name}*${allActivities.join(" ، ")}*${day}/${month}/${year}`);
@@ -363,11 +387,9 @@ function fetchMyFiles() {
     let pass = document.getElementById("password").value;
     let fileInput = document.getElementById("fileInput");
 
-    // إزالة الحمار من خانة الملف فوراً لأننا في وضع العرض فقط
     fileInput.classList.remove("input-error");
 
     if(!church || !churches.includes(church) || !pass) { 
-        // تمرير true لتجاهل فحص ملف الإكسيل في هذه اللحظة
         showMessage("⚠️ أدخل اسم الكنيسة والباسورد لعرض السجل.", "error", true); 
         return; 
     }
