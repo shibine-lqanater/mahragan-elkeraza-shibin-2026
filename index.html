@@ -117,7 +117,7 @@
 </div>
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz7baZgNh9acApHENBSGSOY8tAPJzk-jwY4_tDUlsPpEM3T1sY0iTZhkj1RE2lz9bFD/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwPC6-FNHMEnFB-iWkZQbNdp8kGLGw0x2qVshnlUYvqioFdYK9Z1EfEo5TeBxhbBcWP/exec";
 
 const fixedStages = [
     "حضانة",
@@ -215,6 +215,11 @@ function checkData(rows, password, churchName, fileObject) {
         let month = row[4];
         let year = row[5];
         
+        let firstActivityValue = row[6] ? row[6].toString().trim() : "";
+        if (!firstActivityValue || firstActivityValue.includes("ختر")) {
+            allErrors.push(`${errorPrefix}يجب اختيار مسابقة في الخانة الأولى .`);
+        }
+
         let allActivities = [];
         for (let col = 6; col <= 13; col++) { 
             let cellValue = row[col] ? row[col].toString().trim() : "";
@@ -237,6 +242,7 @@ function checkData(rows, password, churchName, fileObject) {
             if (birthDate.getMonth() !== month - 1) { allErrors.push(`${errorPrefix}التاريخ غير موجود في التقويم.`); } 
             else if (age < 3 || age > 90) { allErrors.push(`${errorPrefix}السن غير منطقي (${age} سنة).`); }
         }
+        
         if(!level1) { allErrors.push(`${errorPrefix}رجاء اختيار مرحلة ومسابقة واحدة على الأقل.`); }
 
         descriptionData.push(`${name}*${activitiesText}*${day}/${month}/${year}`);
@@ -255,9 +261,10 @@ function checkData(rows, password, churchName, fileObject) {
     uploadNow(fileObject, password, churchName, validCount, currentFileLevels, descriptionData.join("\n"));
 }
 
-function uploadNow(file, password, churchName, count, levels, desc) {
+// --- التعديل يبدأ هنا لدعم كشف التكرار ---
+function uploadNow(file, password, churchName, count, levels, desc, ignoreDuplicate = false) {
     let reader = new FileReader();
-    showMessage("⏳ جاري الرفع...", "success");
+    showMessage("⏳ جاري الفحص والرفع...", "success");
     reader.onload = function(e) {
         let base64Data = e.target.result.split(',')[1];
         fetch(WEB_APP_URL, {
@@ -269,17 +276,32 @@ function uploadNow(file, password, churchName, count, levels, desc) {
                 password: password, 
                 count: count, 
                 levels: levels,
-                description: desc 
+                description: desc,
+                ignoreDuplicate: ignoreDuplicate // إرسال حالة التجاهل للسيرفر
             })
         })
         .then(res => res.json())
         .then(data => {
-            if(data.success) { showMessage("✅ تم الرفع بنجاح!", "success"); }
+            if(data.success) { 
+                showMessage("✅ تم الرفع بنجاح!", "success"); 
+                if(typeof fetchMyFiles === "function") fetchMyFiles();
+            } 
+            else if (data.duplicate) {
+                // نافذة تأكيد في حالة وجود تكرار
+                let msg = `⚠️ تنبيه تكرار!\n\n${data.message}\n\nهل تريد استكمال الرفع وتجاهل التكرار؟`;
+                if (confirm(msg)) {
+                    uploadNow(file, password, churchName, count, levels, desc, true);
+                } else {
+                    showMessage("❌ تم إلغاء الرفع. برجاء تعديل الملف وإعادة رفعه مرة أخرى.", "error");
+                }
+            }
             else { showMessage("❌ " + data.message, "error"); }
-        });
+        })
+        .catch(err => showMessage("❌ خطأ في الاتصال: " + err, "error"));
     };
     reader.readAsDataURL(file);
 }
+// --- نهاية التعديل ---
 
 let cachedFiles = []; 
 
@@ -334,7 +356,6 @@ function fetchMyFiles() {
     });
 }
 
-// دالة البحث المحدثة لعرض كل مسابقة في سطر مستقل
 function searchInNames() {
     let nameVal = document.getElementById("searchNameInput").value.trim();
     let stageVal = document.getElementById("searchStageInput").value;
@@ -359,7 +380,6 @@ function searchInNames() {
                     found = true;
                     let parts = personLine.split("*");
                     if(parts.length >= 3) {
-                        // تفكيك المسابقات المحفوظة بفاصلة " ، "
                         let activities = parts[1].split(" ، ");
                         let activitiesLines = "";
                         activities.forEach(act => {
