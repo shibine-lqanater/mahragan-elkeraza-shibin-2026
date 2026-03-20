@@ -96,8 +96,8 @@
     </div>
     
     <div id="uploadArea">
-        <label>📄 ملف الإكسيل (XLSX):</label>
-        <input type="file" id="fileInput" accept=".xlsx">
+        <label>📄 ملف الإكسيل (XLSX أو XLS):</label>
+        <input type="file" id="fileInput" accept=".xlsx, .xls">
         <button id="uploadBtn" onclick="validateFile()">⚡ فحص ورفع البيانات</button>
     </div>
 
@@ -140,7 +140,7 @@
 </div>
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvre2y8x87gR-32wgk1zaCc8z4tFYPlgBw5JtFp-JvSC_hCiViRNCt65rJwK2YMvwN/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwgFSj76pGuO7WYLX-Uc2rV96EVIui9GMo8GOe-38C1p2ZLPnQFg1lcQQdG46DsygNK/exec";
 
 const fixedStages = ["حضانة","أولى وثانية","ثالثة ورابعة","خامسة وسادسة","إعدادى","ثانوى","جامعة","الخدام واعداد الخدام","خريجين","ديديموس","ذوى القدرات الخاصة","قانا الجليل","تعليم الكبار","الصم والبكم","سمعان الشيخ","الحرفيون"];
 
@@ -226,6 +226,12 @@ function checkData(rows, password, churchName, fileObject) {
     let validCount = 0;
     let descriptionData = [];
 
+    // --- الحصول على تاريخ اليوم الفعلي عند تشغيل الفحص ---
+    let now = new Date();
+    let todayDay = now.getDate();
+    let todayMonth = now.getMonth() + 1; // JS يبدأ من 0
+    let todayYear = now.getFullYear();
+
     for(let i=2; i < rows.length; i++) {
         let row = rows[i];
         let name = row[0] ? row[0].toString().trim().replace(/\s+/g, ' ') : "";
@@ -237,31 +243,34 @@ function checkData(rows, password, churchName, fileObject) {
 
         let gender = row[2] ? row[2].toString().trim() : "";
         
-        // --- تعديل شرط التاريخ المطور ---
         let day = parseInt(row[3]); 
         let month = parseInt(row[4]); 
         let year = parseInt(row[5]);
-        let today = new Date();
         
         if (isNaN(day) || isNaN(month) || isNaN(year)) {
             allErrors.push(`📍 صف ${i+1} [${name}]: تاريخ الميلاد ناقص أو غير صحيح.`);
         } else {
             let birthDate = new Date(year, month - 1, day);
-            if (birthDate.getFullYear() !== year || birthDate.getMonth() !== month - 1 || birthDate.getDate() !== day) {
-                allErrors.push(`📍 صف ${i+1} [${name}]: التاريخ غير منطقي (غير موجود بالتقويم).`);
-            } else if (birthDate > today) {
+            
+            // 1. فحص هل هو تاريخ اليوم؟
+            if (day === todayDay && month === todayMonth && year === todayYear) {
+                allErrors.push(`📍 صف ${i+1} [${name}]: خطأ، هذا تاريخ اليوم! لا يمكن تسجيل تاريخ اليوم كـ ميلاد.`);
+            } 
+            // 2. فحص هل هو في المستقبل؟
+            else if (birthDate > now) {
                 allErrors.push(`📍 صف ${i+1} [${name}]: التاريخ غير منطقي (تاريخ في المستقبل).`);
-            } else {
-                let age = today.getFullYear() - year;
-                let m = today.getMonth() - birthDate.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) { age--; }
+            } 
+            // 3. فحص العمر (من 0 لـ 80 سنة)
+            else {
+                let age = todayYear - year;
+                let m = (now.getMonth()) - (month - 1);
+                if (m < 0 || (m === 0 && todayDay < day)) { age--; }
 
-                if (age < 3 || age > 80) {
-                    allErrors.push(`📍 صف ${i+1} [${name}]: السن غير منطقي (${age} سنة). المسموح من 3 إلى 80 سنة.`);
+                if (age < 0 || age > 80) {
+                    allErrors.push(`📍 صف ${i+1} [${name}]: السن (${age} سنة) خارج النطاق المسموح (0-80).`);
                 }
             }
         }
-        // --- نهاية تعديل التاريخ ---
 
         let allActivities = [];
         let rowStages = [];
@@ -327,18 +336,44 @@ function uploadNow(file, password, churchName, count, levels, desc, ignoreDuplic
                 fetchMyFiles();
             } 
             else if (data.duplicate) {
-                let report = data.message.split('--------------------------------------')
-                    .map(item => item.trim() ? `<div class="report-item">${item.replace(/\n/g, '<br>')}</div>` : '').join('');
+                let duplicateRows = data.message.split('--------------------------------------').filter(item => item.trim() !== '');
+                
+                let report = duplicateRows.map(item => {
+                    let lines = item.split('\n').filter(l => l.trim() !== '');
+                    let name = lines[0] || "اسم غير معروف";
+                    let newData = lines[1] || "بيانات غير متوفرة"; 
+                    let oldData = lines[2] || "بيانات غير متوفرة";
+
+                    return `
+                        <div class="report-item" style="border-right: 5px solid #e53e3e; background: #fffcfc; padding: 15px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: right; border-left: 1px solid #eee; border-top: 1px solid #eee;">
+                            <div style="font-weight: bold; color: #2d3748; font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                                👤 <span>${name}</span>
+                            </div>
+                            <div style="background: #f0fff4; border: 1px solid #c6f6d5; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 13px;">
+                                <span style="color: #2f855a; font-weight: bold;">🟢 الملف الجديد:</span> 
+                                <div style="margin-top: 5px; color: #276749; line-height: 1.6;">${newData}</div>
+                            </div>
+                            <div style="background: #fff5f5; border: 1px solid #fed7d7; padding: 10px; border-radius: 8px; font-size: 13px;">
+                                <span style="color: #c53030; font-weight: bold;">🔴 البيانات المسجلة سابقاً:</span>
+                                <div style="margin-top: 5px; color: #9b2c2c; line-height: 1.6;">${oldData}</div>
+                            </div>
+                        </div>`;
+                }).join('');
                 
                 window.tempUpload = { file, password, churchName, count, levels, desc };
 
                 openModal(`
-                    <h3 style="color:#e53e3e; margin-top:0;">🚨 تنبيه بأسماء مسجلة مسبقاً</h3>
-                    <div style="max-height: 350px; overflow-y: auto;">${report}</div>
-                    <p><b>هل تريد الاستمرار في الرفع رغم وجود هذه الأسماء؟</b></p>
-                    <div class="modal-footer">
-                        <button onclick="confirmIgnore()" style="background:#e53e3e; padding:10px 20px;">نعم، ارفع التكرار</button>
-                        <button onclick="closeModal()" style="background:#718096; padding:10px 20px;">إلغاء</button>
+                    <h3 style="color:#e53e3e; margin-top:0; text-align:center; font-weight: 800;">🚨 مراجعة التكرار والمسابقات</h3>
+                    <p style="text-align:center; font-size:14px; color:#4a5568; margin-bottom: 20px;">تم العثور على أسماء مسجلة مسبقاً بمراحل أو مسابقات مختلفة. يرجى المراجعة:</p>
+                    <div style="max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #edf2f7; border-radius: 15px; background: #f7fafc;">
+                        ${report}
+                    </div>
+                    <div style="margin-top:25px; text-align:center;">
+                        <p style="font-weight:bold; color: #2d3748; margin-bottom:15px;">هل تريد الاستمرار في الرفع رغم وجود هذه الأسماء؟</p>
+                        <div class="modal-footer" style="display:flex; gap:12px; justify-content: center;">
+                            <button onclick="confirmIgnore()" style="background: #e53e3e; flex:1; padding: 12px; font-weight: bold; border-radius: 8px; color:white; border:none; cursor:pointer;">نعم، ارفع التكرار</button>
+                            <button onclick="closeModal()" style="background: #718096; flex:1; padding: 12px; font-weight: bold; border-radius: 8px; color:white; border:none; cursor:pointer;">إلغاء</button>
+                        </div>
                     </div>
                 `);
             }
