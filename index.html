@@ -9,50 +9,66 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        body { margin:0; font-family:'Cairo',sans-serif; background:#f5f5f5; }
-        .header { background: linear-gradient(135deg,#1565c0,#0d47a1); height: 150px; display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        .rect-right { position: absolute; right: 40px; max-height: 110px; width: auto; }
-        .logo-left { position: absolute; left: 40px; max-height: 110px; width: auto; }
-        .header-title { text-align: center; color: white; font-size: 28px; font-weight: 700; line-height: 1.4; z-index: 2; }
+        body { margin:0; font-family:'Cairo',sans-serif; background:#f0f2f5; color: #333; }
+        .header { background: linear-gradient(135deg,#1565c0,#0d47a1); height: 160px; display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .rect-right { position: absolute; right: 30px; max-height: 120px; width: auto; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.2)); }
+        .logo-left { position: absolute; left: 30px; max-height: 120px; width: auto; }
+        .header-title { text-align: center; color: white; font-size: 26px; font-weight: 700; line-height: 1.5; z-index: 2; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
         
         @media (max-width: 768px) {
-            .header { height: 100px; }
-            .rect-right { right: 15px; max-height: 70px; } 
-            .logo-left { left: 15px; max-height: 70px; }
-            .header-title { font-size: 16px; width: 45%; } 
-            .container { max-width: 95% !important; padding: 20px !important; margin: 20px auto; }
+            .header { height: 110px; }
+            .rect-right { right: 10px; max-height: 70px; } 
+            .logo-left { left: 10px; max-height: 70px; }
+            .header-title { font-size: 15px; width: 45%; } 
+            .container { max-width: 92% !important; padding: 20px !important; margin: 20px auto; }
         }
 
-        .container { max-width:450px; margin:40px auto; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.1); }
-        label { font-weight: 600; display: block; margin-bottom: 8px; color: #333; }
-        input, select { width:100%; padding:14px; margin-bottom:15px; border-radius:8px; border:1px solid #ccc; font-size:15px; box-sizing: border-box; font-family: 'Cairo', sans-serif; transition: 0.3s; }
-        input:focus { border-color: #1565c0; outline: none; background: #f0f7ff; }
-        button { width:100%; padding:14px; background:linear-gradient(135deg,#2e7d32,#1b5e20); color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer; margin-bottom:10px; font-weight: bold; }
+        .container { max-width:550px; margin:40px auto; background:white; padding:35px; border-radius:20px; box-shadow:0 15px 35px rgba(0,0,0,0.1); border-top: 6px solid #1565c0; }
+        label { font-weight: 700; display: block; margin-bottom: 10px; color: #2c3e50; font-size: 14px; }
+        input, select { width:100%; padding:14px; margin-bottom:18px; border-radius:10px; border:1.5px solid #dee2e6; font-size:15px; box-sizing: border-box; font-family: 'Cairo', sans-serif; transition: 0.3s; }
+        input:focus { border-color: #1565c0; outline: none; background: #f8fbff; box-shadow: 0 0 0 4px rgba(21, 101, 192, 0.1); }
+        
+        .pass-wrapper { position: relative; }
+        .toggle-btn { position: absolute; left: 12px; top: 12px; cursor: pointer; color: #666; font-size: 13px; background: #eee; padding: 2px 8px; border-radius: 5px; }
+
+        button { width:100%; padding:15px; background:linear-gradient(135deg,#2e7d32,#1b5e20); color:white; border:none; border-radius:10px; font-size:16px; cursor:pointer; margin-bottom:12px; font-weight: bold; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        button:hover { opacity: 0.9; transform: translateY(-2px); }
+        button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+        
         .btn-view { background: linear-gradient(135deg,#455a64,#263238); }
+        .message { margin-top:15px; font-size:14px; padding:15px; border-radius:10px; display:none; white-space: pre-line; line-height: 1.7; border: 1px solid transparent; max-height: 300px; overflow-y: auto; }
         
-        .message { margin-top:15px; font-size:14px; padding:15px; border-radius:8px; display:none; white-space: pre-line; line-height: 1.6; border: 1px solid transparent; max-height: 250px; overflow-y: auto; }
-        .error { background:#ffe5e5; color:#c62828; border-color: #f5c2c2; text-align: right; }
-        .success { background:#e8f5e9; color:#2e7d32; border-color: #c3e6cb; }
+        .error { background:#fff5f5; color:#e53e3e; border-color: #feb2b2; text-align: right; animation: shake 0.4s ease-in-out; }
+        .input-error { border-color: #e53e3e !important; background: #fff5f5 !important; animation: shake 0.4s ease-in-out; }
+
+        .success { background:#f0fff4; color:#2f855a; border-color: #c6f6d5; }
         
-        .error-field { border: 2px solid #ff0000 !important; animation: shake 0.4s ease-in-out; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            50% { transform: translateX(8px); }
+            75% { transform: translateX(-8px); }
+        }
 
-        .stats-card { background: #e3f2fd; padding: 15px; border-radius: 10px; border-right: 5px solid #1565c0; margin-bottom: 20px; display:none; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-        .stat-item { background: white; padding: 8px; border-radius: 6px; border: 1px solid #bbdefb; font-size: 12px; font-weight: bold; }
-        .stat-total { text-align: center; margin-top: 12px; font-weight: bold; color: #1b5e20; border-top: 1px solid #adc1d1; padding-top: 8px; font-size: 16px; }
+        .stats-card { background: #ebf8ff; padding: 20px; border-radius: 12px; border-right: 6px solid #3182ce; margin-bottom: 25px; display:none; }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+        .stat-item { background: white; padding: 10px; border-radius: 8px; border: 1px solid #bee3f8; font-size: 12px; font-weight: 700; text-align: center; color: #2c5282; }
+        .stat-total { text-align: center; margin-top: 15px; font-weight: 800; color: #22543d; border-top: 2px dashed #cbd5e0; padding-top: 12px; font-size: 18px; }
 
-        .history-section { margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px; display:none; }
-        .table-scroll { max-height: 300px; overflow: auto; margin-top: 10px; border: 1px solid #ddd; }
-        table { width:100%; border-collapse: collapse; font-size: 13px; min-width: 350px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        th { background: #f8f9fa; position: sticky; top: 0; z-index: 1; }
-        .btn-delete { background: #c62828; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .history-section { margin-top: 25px; border-top: 2px solid #edf2f7; padding-top: 25px; display:none; }
+        .table-scroll { max-height: 350px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 12px; }
+        table { width:100%; border-collapse: collapse; font-size: 13px; min-width: 400px; }
+        th { background: #f7fafc; padding: 15px; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #edf2f7; }
+        td { padding: 12px; text-align: center; border-bottom: 1px solid #edf2f7; }
+        .btn-delete { background: #e53e3e; color: white; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 11px; }
 
-        .search-box { display:none; background: #fff3e0; padding: 15px; border-radius: 10px; border-right: 5px solid #ff9800; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .result-card { background: white; padding: 12px; border-radius: 8px; margin-top: 8px; border: 1px solid #ffe0b2; font-size: 13px; text-align: right; line-height: 1.6; }
-        .result-card b { color: #e65100; }
-        .btn-search { background: linear-gradient(135deg,#ff9800,#f57c00); margin-bottom: 5px; }
+        .search-box { display:none; background: #fffaf0; padding: 20px; border-radius: 12px; border-right: 6px solid #ed8936; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .result-card { background: white; padding: 15px; border-radius: 10px; margin-top: 10px; border: 1px solid #feebc8; font-size: 13px; text-align: right; line-height: 1.8; }
+        
+        .modal-overlay { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+        .modal-content { background: white; margin: 5vh auto; padding: 30px; border-radius: 20px; width: 90%; max-width: 650px; position: relative; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
+        .report-item { background: #fff5f5; border-right: 5px solid #f56565; padding: 15px; margin-bottom: 12px; border-radius: 8px; }
+        .modal-footer { display: flex; justify-content: center; gap: 15px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
     </style>
 </head>
 
@@ -64,42 +80,49 @@
     <img src="logo.png" class="logo-left">
 </div>
 
+<div id="modalOverlay" class="modal-overlay">
+    <div id="modalBody" class="modal-content"></div>
+</div>
+
 <div class="container">
-    <label>اختر الكنيسة:</label>
+    <label>💒 اختر الكنيسة:</label>
     <input list="churchesList" id="churchName" placeholder="🔍 ابدأ بكتابة اسم الكنيسة..." autocomplete="off">
     <datalist id="churchesList"></datalist>
     
-    <label>كلمة المرور:</label>
-    <input type="password" id="password" placeholder="أدخل كلمة المرور الخاصة بالكنيسة">
+    <label>🔑 كلمة المرور:</label>
+    <div class="pass-wrapper">
+        <input type="password" id="password" placeholder="أدخل كلمة المرور الخاصة بالكنيسة">
+        <span class="toggle-btn" onclick="togglePass()">👁️ عرض</span>
+    </div>
     
     <div id="uploadArea">
-        <label>ملف الإكسيل (XLSX):</label>
+        <label>📄 ملف الإكسيل (XLSX):</label>
         <input type="file" id="fileInput" accept=".xlsx">
-        <button onclick="validateFile()">بدء فحص ورفع الملف</button>
+        <button id="uploadBtn" onclick="validateFile()">⚡ فحص ورفع البيانات</button>
     </div>
 
-    <button class="btn-view" onclick="fetchMyFiles()">عرض الملفات والإحصائيات</button>
+    <button class="btn-view" onclick="fetchMyFiles()">📋 عرض الإحصائيات والسجل</button>
     
     <div id="messageBox" class="message"></div>
 
     <div id="searchBox" class="search-box">
-        <label style="color: #e65100;">🔍 البحث عن مشترك:</label>
+        <label style="color: #c05621;">🔎 بحث سريع عن مشترك:</label>
         <input type="text" id="searchNameInput" placeholder="اكتب اسم الشخص..." style="margin-bottom:10px;">
-        <select id="searchStageInput" style="margin-bottom:10px;">
+        <select id="searchStageInput" style="margin-bottom:15px;">
             <option value="">-- كل المراحل --</option>
         </select>
-        <button class="btn-search" onclick="searchInNames()">بحث الآن</button>
+        <button class="btn-search" onclick="searchInNames()" style="background: #ed8936;">ابدأ البحث</button>
         <div id="searchResults"></div>
     </div>
 
     <div id="statsCard" class="stats-card">
-        <label style="color:#0d47a1; margin:0;">📊 إحصائيات المراحل (تراكمي):</label>
+        <label style="color:#2b6cb0;">📊 توزيع المراحل (إجمالي):</label>
         <div id="statsGrid" class="stats-grid"></div>
-        <div class="stat-total">إجمالي مشتركين الكنيسة: <span id="totalChurchCount">0</span></div>
+        <div class="stat-total">إجمالي المقيدين: <span id="totalChurchCount">0</span></div>
     </div>
 
     <div id="historySection" class="history-section">
-        <label>ملفات الكنيسة المرفوعة:</label>
+        <label>📚 الملفات المرفوعة سابقاً:</label>
         <div class="table-scroll">
             <table id="filesTable">
                 <thead>
@@ -117,67 +140,74 @@
 </div>
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzmdjpL18vkcAgSQsJ33U10Wxop7QDdfb2BnRRxxq7BrRxswRZyY6C8r4qpeO8CFT-I/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvre2y8x87gR-32wgk1zaCc8z4tFYPlgBw5JtFp-JvSC_hCiViRNCt65rJwK2YMvwN/exec";
 
-const fixedStages = [
-    "حضانة",
-    "أولى وثانية",
-    "ثالثة ورابعة",
-    "خامسة وسادسة",
-    "إعدادى",
-    "ثانوى",
-    "جامعة",
-    "الخدام واعداد الخدام",
-    "خريجين",
-    "ديديموس",
-    "ذوى القدرات الخاصة",
-    "قانا الجليل",
-    "تعليم الكبار",
-    "الصم والبكم",
-    "سمعان الشيخ",
-    "الحرفيون"
-];
+const fixedStages = ["حضانة","أولى وثانية","ثالثة ورابعة","خامسة وسادسة","إعدادى","ثانوى","جامعة","الخدام واعداد الخدام","خريجين","ديديموس","ذوى القدرات الخاصة","قانا الجليل","تعليم الكبار","الصم والبكم","سمعان الشيخ","الحرفيون"];
 
 const searchStageSelect = document.getElementById("searchStageInput");
-fixedStages.forEach(s => {
-    let opt = document.createElement("option");
-    opt.value = s;
-    opt.innerText = s;
-    searchStageSelect.appendChild(opt);
-});
+fixedStages.forEach(s => { let opt = document.createElement("option"); opt.value = s; opt.innerText = s; searchStageSelect.appendChild(opt); });
 
 const churches = ["كنيسة العذراء المطرانية", "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي", "العذراء و الانبا بيشوي المنية", "العذراء و الانبا موسي الخصوص", "العذراء و البابا بطرس الخانكة", "العذراء و الرسولين", "العذراء و الشهدين القلج", "العذراء و الشهيد ابانوب القلج", "العذراء و الشهيد ابانوب المرج الغربية", "العذراء و الملاك العكرشة", "العذراء و الملاك ميخائيل الخصوص", "العذراء و مارجرجس كفر شبين", "العذراء و مارمينا الجبل الاصفر", "العذراء و ماريوحنا الخصوص", "العذراء و يوسف النجار الخصوص", "كنيسة ابوسفين الخصوص", "كنيسة ابوسفين و دميانة الجبل الاصفر", "كنيسة الانبا بيشوي كوم الاطرون", "كنيسة الانبا كاراس الخصوص", "كنيسة الانبا كاراس نوي", "كنيسة البابا اثناسيوس الخصوص", "كنيسة البابا كيرلس كفر الدير", "كنيسة الشهيدة دميانة ميت عاصم", "كنيسة الشهيدة دميانة ميت كنانة", "كنيسة الملاك القشيش", "كنيسة الملاك القلزم", "كنيسة مارجرجس بلتان", "كنيسة مارجرجس طوخ", "كنيسة مارجرجس قها", "كنيسة مارجرجس و البابا ديسقورس", "كنيسة مارمينا ساحل دجوي", "كنيسة مارمينا و البابا كيرلس الخصوص", "مارجرجس ابو زعبل", "مارجرجس شبين القناطر", "مذبح الامير تادرس الخصوص"].sort();
 
 const datalist = document.getElementById('churchesList');
-churches.forEach(name => {
-    let option = document.createElement('option');
-    option.value = name;
-    datalist.appendChild(option);
-});
+churches.forEach(name => { let option = document.createElement('option'); option.value = name; datalist.appendChild(option); });
 
-function applyShake(id) {
-    let el = document.getElementById(id);
-    el.classList.add('error-field');
-    setTimeout(() => el.classList.remove('error-field'), 500);
+function togglePass() {
+    const p = document.getElementById("password");
+    p.type = p.type === "password" ? "text" : "password";
 }
 
-function showMessage(text, type) {
+function openModal(content) {
+    document.getElementById("modalBody").innerHTML = content;
+    document.getElementById("modalOverlay").style.display = "block";
+}
+
+function closeModal() {
+    document.getElementById("modalOverlay").style.display = "none";
+    const btn = document.getElementById("uploadBtn");
+    btn.disabled = false;
+    const msgBox = document.getElementById("messageBox");
+    if (msgBox.innerHTML.includes("جاري رفع")) {
+        msgBox.style.display = "none";
+    }
+}
+
+// تعديل دالة الرسائل لتقبل خيار استثناء ملف الإكسيل
+function showMessage(text, type, ignoreFileCheck = false) {
     let box = document.getElementById("messageBox");
     box.style.display = "block";
+    box.style.animation = 'none';
+    box.offsetHeight; 
+    box.style.animation = null; 
     box.className = "message " + type;
     box.innerHTML = text;
+
+    if (type === "error") {
+        const inputIds = ["churchName", "password"];
+        if(!ignoreFileCheck) inputIds.push("fileInput"); // إضافة الملف فقط لو لم نكن في وضع "العرض"
+
+        inputIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el.value || (id === "churchName" && !churches.includes(el.value))) {
+                el.classList.add("input-error");
+                el.oninput = () => el.classList.remove("input-error");
+                el.onchange = () => el.classList.remove("input-error");
+            }
+        });
+    }
 }
 
 function validateFile() {
+    document.querySelectorAll(".input-error").forEach(el => el.classList.remove("input-error"));
     let churchName = document.getElementById("churchName").value;
     let password = document.getElementById("password").value.trim();
     let fileInput = document.getElementById("fileInput");
     let file = fileInput.files[0];
-    let hasError = false;
-    if(!churchName || !churches.includes(churchName)) { applyShake("churchName"); hasError = true; }
-    if(!password) { applyShake("password"); hasError = true; }
-    if(!file) { applyShake("fileInput"); hasError = true; }
-    if(hasError) { showMessage("⚠️ برجاء اختيار كنيسة صحيحة وإكمال البيانات.", "error"); return; }
+    
+    if(!churchName || !churches.includes(churchName) || !password || !file) {
+        showMessage("⚠️ تأكد من اختيار الكنيسة وإدخال الباسورد واختيار الملف.", "error");
+        return;
+    }
     
     let reader = new FileReader();
     reader.onload = function(e) {
@@ -192,238 +222,230 @@ function validateFile() {
 
 function checkData(rows, password, churchName, fileObject) {
     let allErrors = []; 
-    let today = new Date();
     let nameInfo = {};
     let currentFileLevels = {}; 
     let validCount = 0;
-    
     let descriptionData = [];
 
     for(let i=2; i < rows.length; i++) {
         let row = rows[i];
-        let rowNumber = i + 1;
         let name = row[0] ? row[0].toString().trim().replace(/\s+/g, ' ') : "";
         if(!name) continue;
 
-        let errorPrefix = `📍 الصف (${rowNumber}) - [${name}]: `;
-        if (!nameInfo[name]) { nameInfo[name] = { count: 0, rows: [] }; }
+        if (!nameInfo[name]) nameInfo[name] = { count: 0, rows: [] };
         nameInfo[name].count++;
-        nameInfo[name].rows.push(rowNumber);
+        nameInfo[name].rows.push(i + 1);
 
-        let gender = row[2] ? row[2].toString().trim().replace(/\s+/g,"") : "";
-        let day = row[3];
-        let month = row[4];
-        let year = row[5];
-        
-        let firstActivityValue = row[6] ? row[6].toString().trim() : "";
-        if (!firstActivityValue || firstActivityValue.includes("ختر")) {
-            allErrors.push(`${errorPrefix}يجب اختيار مسابقة في الخانة الأولى .`);
+        let gender = row[2] ? row[2].toString().trim() : "";
+        let day = row[3]; let month = row[4]; let year = row[5];
+        let allActivities = [];
+        let rowStages = [];
+
+        let firstAct = row[6] ? row[6].toString().trim() : "";
+        if (!firstAct || firstAct === "" || firstAct.includes("اختر المرحلة")) {
+            allErrors.push(`📍 صف ${i+1} [${name}]: يجب اختيار المسابقة في الخانة الأولى.`);
         }
 
-        // --- التعديل الجديد: فحص تعدد المراحل في نفس السطر ---
-        let allActivities = [];
-        let rowStages = []; // لتخزين المراحل المكتشفة في هذا الصف
-
         for (let col = 6; col <= 13; col++) { 
-            let cellValue = row[col] ? row[col].toString().trim() : "";
-            if (cellValue !== "" && !cellValue.includes("ختر")) {
-                allActivities.push(cellValue);
-                
-                // استخراج اسم المرحلة من الخانة (بناءً على القائمة الثابتة)
-                fixedStages.forEach(fs => {
-                    if (cellValue.includes(fs) && !rowStages.includes(fs)) {
-                        rowStages.push(fs);
-                    }
-                });
+            let val = row[col] ? row[col].toString().trim() : "";
+            if (val && !val.includes("ختر")) {
+                allActivities.push(val);
+                fixedStages.forEach(fs => { if (val.includes(fs) && !rowStages.includes(fs)) rowStages.push(fs); });
             }
         }
 
-        // إذا وجدنا أكثر من مرحلة مختلفة في نفس الصف
-        if (rowStages.length > 1) {
-            allErrors.push(`${errorPrefix}تم اختيار مسابقات لمراحل مختلفة في نفس السطر (${rowStages.join(" و ")}). يجب أن يتبع الاسم مرحلة واحدة فقط.`);
-        }
-        // --- نهاية تعديل تعدد المراحل ---
+        if (rowStages.length > 1) allErrors.push(`📍 صف ${i+1}: تداخل مراحل (${rowStages.join(" و ")}).`);
+        if (name.split(" ").filter(p=>p).length < 3) allErrors.push(`📍 صف ${i+1}: الاسم ليس ثلاثياً.`);
+        if (gender !== "ذكر" && gender !== "انثى") allErrors.push(`📍 صف ${i+1}: لم يتم تحديد النوع.`);
+        if (!day || !month || !year) allErrors.push(`📍 صف ${i+1}: تاريخ الميلاد ناقص.`);
+        if (!allActivities[0]) allErrors.push(`📍 صف ${i+1}: لم يتم اختيار مسابقة.`);
 
-        let level1 = allActivities[0] || ""; 
-        let activitiesText = allActivities.join(" ، "); 
-
-        if(name.split(" ").filter(p=>p).length < 3) allErrors.push(`${errorPrefix}الاسم يجب أن يكون ثلاثياً.`);
-        if(/\d/.test(name)) allErrors.push(`${errorPrefix}الاسم يحتوي على أرقام.`);
-        if(gender !== "ذكر" && gender !== "انثى") allErrors.push(`${errorPrefix}برجاء تحديد النوع (ذكر أو انثى).`);
+        descriptionData.push(`${name}*${allActivities.join(" ، ")}*${day}/${month}/${year}`);
         
-        if(!day || !month || !year) { allErrors.push(`${errorPrefix}تاريخ الميلاد غير مكتمل.`); } 
-        else {
-            let birthDate = new Date(year, month - 1, day);
-            let age = today.getFullYear() - year;
-            if (birthDate.getMonth() !== month - 1) { allErrors.push(`${errorPrefix}التاريخ غير موجود في التقويم.`); } 
-            else if (age < 3 || age > 90) { allErrors.push(`${errorPrefix}السن غير منطقي (${age} سنة).`); }
-        }
-        
-        if(!level1) { allErrors.push(`${errorPrefix}رجاء اختيار مرحلة ومسابقة واحدة على الأقل.`); }
-
-        descriptionData.push(`${name}*${activitiesText}*${day}/${month}/${year}`);
-
-        if (level1) {
-            currentFileLevels[level1] = (currentFileLevels[level1] || 0) + 1;
-        }
+        let mainStage = rowStages[0] || "غير محدد";
+        currentFileLevels[mainStage] = (currentFileLevels[mainStage] || 0) + 1;
         validCount++;
     }
 
-    let duplicates = Object.keys(nameInfo).filter(n => nameInfo[n].count > 1);
-    if(duplicates.length > 0) { duplicates.forEach(name => { allErrors.push(`⚠️ تكرار: الاسم [${name}] مكرر في الصفوف: (${nameInfo[name].rows.join(", ")})`); }); }
+    Object.keys(nameInfo).forEach(n => {
+        if(nameInfo[n].count > 1) allErrors.push(`⚠️ تكرار داخلي: الاسم [${n}] في الصفوف (${nameInfo[n].rows.join(", ")})`);
+    });
     
-    if(allErrors.length > 0) { showMessage("❌ أخطاء في الملف:\n\n" + allErrors.join("\n"), "error"); return; }
+    if(allErrors.length > 0) {
+        showMessage("❌ أخطاء في البيانات:\n" + allErrors.join("\n"), "error");
+        return;
+    }
     
     uploadNow(fileObject, password, churchName, validCount, currentFileLevels, descriptionData.join("\n"));
 }
 
 function uploadNow(file, password, churchName, count, levels, desc, ignoreDuplicate = false) {
+    const btn = document.getElementById("uploadBtn");
+    btn.disabled = true;
+    showMessage("⏳ جاري رفع ومعالجة البيانات...", "success");
+
     let reader = new FileReader();
-    showMessage("⏳ جاري الفحص والرفع...", "success");
     reader.onload = function(e) {
-        let base64Data = e.target.result.split(',')[1];
+        let base64 = e.target.result.split(',')[1];
         fetch(WEB_APP_URL, {
             method: 'POST',
             body: JSON.stringify({ 
-                fileName: file.name, 
-                fileData: base64Data, 
-                church: churchName, 
-                password: password, 
-                count: count, 
-                levels: levels,
-                description: desc,
-                ignoreDuplicate: ignoreDuplicate 
+                fileName: file.name, fileData: base64, church: churchName, password: password, 
+                count: count, levels: levels, description: desc, ignoreDuplicate: ignoreDuplicate 
             })
         })
         .then(res => res.json())
         .then(data => {
             if(data.success) { 
-                showMessage("✅ تم الرفع بنجاح!", "success"); 
-                if(typeof fetchMyFiles === "function") fetchMyFiles();
+                btn.disabled = false;
+                closeModal();
+                showMessage("✅ " + data.message, "success"); 
+                fetchMyFiles();
             } 
             else if (data.duplicate) {
-                let msg = `⚠️ تنبيه تكرار!\n\n${data.message}\n\nهل تريد استكمال الرفع وتجاهل التكرار؟`;
-                if (confirm(msg)) {
-                    uploadNow(file, password, churchName, count, levels, desc, true);
-                } else {
-                    showMessage("❌ تم إلغاء الرفع. برجاء تعديل الملف وإعادة رفعه مرة أخرى.", "error");
-                }
+                let report = data.message.split('--------------------------------------')
+                    .map(item => item.trim() ? `<div class="report-item">${item.replace(/\n/g, '<br>')}</div>` : '').join('');
+                
+                window.tempUpload = { file, password, churchName, count, levels, desc };
+
+                openModal(`
+                    <h3 style="color:#e53e3e; margin-top:0;">🚨 تنبيه بأسماء مسجلة مسبقاً</h3>
+                    <div style="max-height: 350px; overflow-y: auto;">${report}</div>
+                    <p><b>هل تريد الاستمرار في الرفع رغم وجود هذه الأسماء؟</b></p>
+                    <div class="modal-footer">
+                        <button onclick="confirmIgnore()" style="background:#e53e3e; padding:10px 20px;">نعم، ارفع التكرار</button>
+                        <button onclick="closeModal()" style="background:#718096; padding:10px 20px;">إلغاء</button>
+                    </div>
+                `);
             }
-            else { showMessage("❌ " + data.message, "error"); }
+            else { 
+                btn.disabled = false;
+                showMessage("❌ " + data.message, "error"); 
+            }
         })
-        .catch(err => showMessage("❌ خطأ في الاتصال: " + err, "error"));
+        .catch(err => { btn.disabled = false; showMessage("❌ خطأ اتصال: " + err, "error"); });
     };
-    reader.readAsDataURL(file);
+    
+    if (file instanceof File) {
+        reader.readAsDataURL(file);
+    } else if (window.tempUpload && window.tempUpload.file instanceof File) {
+        let originalFile = window.tempUpload.file;
+        let originalReader = new FileReader();
+        originalReader.onload = function(e) {
+             let base64 = e.target.result.split(',')[1];
+             fetch(WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    fileName: originalFile.name, fileData: base64, church: churchName, password: password, 
+                    count: count, levels: levels, description: desc, ignoreDuplicate: true 
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                if(data.success) { closeModal(); showMessage("✅ تم الرفع بنجاح!", "success"); fetchMyFiles(); }
+                else { showMessage("❌ " + data.message, "error"); }
+            });
+        };
+        originalReader.readAsDataURL(originalFile);
+    }
+}
+
+function confirmIgnore() {
+    const d = window.tempUpload;
+    closeModal();
+    uploadNow(d.file, d.password, d.churchName, d.count, d.levels, d.desc, true);
 }
 
 let cachedFiles = []; 
-
 function fetchMyFiles() {
     let church = document.getElementById("churchName").value;
     let pass = document.getElementById("password").value;
-    if(!church || !pass) { showMessage("⚠️ أدخل الكنيسة والباسورد أولاً", "error"); return; }
+    let fileInput = document.getElementById("fileInput");
+
+    // إزالة الحمار من خانة الملف فوراً لأننا في وضع العرض فقط
+    fileInput.classList.remove("input-error");
+
+    if(!church || !churches.includes(church) || !pass) { 
+        // تمرير true لتجاهل فحص ملف الإكسيل في هذه اللحظة
+        showMessage("⚠️ أدخل اسم الكنيسة والباسورد لعرض السجل.", "error", true); 
+        return; 
+    }
     
-    showMessage("⏳ جاري جلب البيانات وحساب الإحصائيات...", "success");
+    showMessage("⏳ جاري التحميل...", "success");
     fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: "fetch", church: church, password: pass }) })
     .then(res => res.json())
     .then(data => {
         if(data.success) {
             cachedFiles = data.files; 
-            let html = "";
-            let totalOverall = 0;
-            let stageStats = {};
+            let html = ""; let total = 0; let stageStats = {};
             fixedStages.forEach(s => stageStats[s] = 0);
 
             data.files.forEach(f => {
-                html += `<tr><td>${f.name}</td><td><b>${f.count}</b></td><td>${f.date}</td><td><button class="btn-delete" onclick="deleteMyFile('${f.id}')">حذف</button></td></tr>`;
-                totalOverall += parseInt(f.count || 0);
-
+                html += `<tr><td>${f.name}</td><td><b>${f.count}</b></td><td>${f.date}</td><td><button class="btn-delete" onclick="showDel('${f.id}', '${f.name}')">حذف</button></td></tr>`;
+                total += parseInt(f.count || 0);
                 if(f.levels) {
-                    for(let fullKey in f.levels) {
-                        let textInExcel = fullKey.trim();
-                        fixedStages.forEach(fixedS => {
-                            if(textInExcel.includes(fixedS)) {
-                                stageStats[fixedS] += parseInt(f.levels[fullKey]);
-                            }
-                        });
-                    }
+                    Object.keys(f.levels).forEach(k => {
+                        fixedStages.forEach(fs => { if(k.includes(fs)) stageStats[fs] += parseInt(f.levels[k]); });
+                    });
                 }
             });
 
             document.getElementById("filesTableBody").innerHTML = html;
-            document.getElementById("totalChurchCount").innerText = totalOverall;
+            document.getElementById("totalChurchCount").innerText = total;
             
             let statsHtml = "";
-            fixedStages.forEach(stage => {
-                let count = stageStats[stage];
-                let style = count > 0 ? "color:#1b5e20; border-color:#2e7d32;" : "color:#999; border-color:#ddd;";
-                statsHtml += `<div class="stat-item" style="${style}">🔹 ${stage}: <b>${count}</b></div>`;
+            fixedStages.forEach(s => {
+                let c = stageStats[s];
+                statsHtml += `<div class="stat-item" style="${c > 0 ? 'border-color:#3182ce; background:#fff;' : 'opacity:0.5;'}">${s}: ${c}</div>`;
             });
-            
             document.getElementById("statsGrid").innerHTML = statsHtml;
             document.getElementById("statsCard").style.display = "block";
             document.getElementById("historySection").style.display = "block";
             document.getElementById("searchBox").style.display = "block"; 
             document.getElementById("messageBox").style.display = "none";
-        } else { showMessage("❌ " + data.message, "error"); }
+        } else showMessage("❌ " + data.message, "error");
     });
 }
 
 function searchInNames() {
-    let nameVal = document.getElementById("searchNameInput").value.trim();
-    let stageVal = document.getElementById("searchStageInput").value;
-    let resultsDiv = document.getElementById("searchResults");
-    
-    if (nameVal === "" && stageVal === "") {
-        resultsDiv.innerHTML = "<div style='color:orange; font-size:12px;'>⚠️ برجاء كتابة اسم أو اختيار مرحلة أولاً.</div>";
-        return;
-    }
+    let n = document.getElementById("searchNameInput").value.trim();
+    let s = document.getElementById("searchStageInput").value;
+    let resDiv = document.getElementById("searchResults");
+    if (!n && !s) return;
 
-    let resultsHtml = "";
-    let found = false;
-
+    let html = ""; let found = false;
     cachedFiles.forEach(file => {
         if (file.description) {
-            let people = file.description.split("\n");
-            people.forEach(personLine => {
-                let matchName = nameVal === "" || personLine.includes(nameVal);
-                let matchStage = stageVal === "" || personLine.includes(stageVal);
-                
-                if (matchName && matchStage && personLine.trim() !== "") {
+            file.description.split("\n").forEach(line => {
+                if ((!n || line.includes(n)) && (!s || line.includes(s)) && line) {
                     found = true;
-                    let parts = personLine.split("*");
-                    if(parts.length >= 3) {
-                        let activities = parts[1].split(" ، ");
-                        let activitiesLines = "";
-                        activities.forEach(act => {
-                            if(act.trim()) {
-                                activitiesLines += `<div><b>🏆 المسابقات:</b> ${act.trim()}</div>`;
-                            }
-                        });
-
-                        resultsHtml += `
-                            <div class="result-card" style="border-right: 5px solid #ff9800;">
-                                <div><b>👤 الاسم:</b> ${parts[0]}</div>
-                                ${activitiesLines}
-                                <div><b>📅 تاريخ الميلاد:</b> ${parts[2]}</div>
-                                <div style="font-size:10px; color:#888; margin-top:5px; border-top:1px dashed #eee;">📂 الملف: ${file.name}</div>
-                            </div>`;
-                    } else {
-                        resultsHtml += `<div class="result-card"><b>👤 ${personLine}</b><br><small>📂 الملف: ${file.name}</small></div>`;
-                    }
+                    let p = line.split("*");
+                    html += `<div class="result-card">👤 <b>${p[0]}</b><br>🏆 ${p[1]}<br>📅 ${p[2]}<br><small style="color:#999">📁 ${file.name}</small></div>`;
                 }
             });
         }
     });
-
-    resultsDiv.innerHTML = found ? resultsHtml : "<div style='color:red; font-size:12px;'>❌ لا توجد نتائج مطابقة</div>";
+    resDiv.innerHTML = found ? html : "<p style='color:red; font-size:12px;'>لا توجد نتائج.</p>";
 }
 
-function deleteMyFile(fileId) {
-    if(!confirm("حذف نهائي؟")) return;
+function showDel(id, name) {
+    openModal(`
+        <h3 style="color:#e53e3e;">⚠️ تأكيد حذف ملف</h3>
+        <p>هل أنت متأكد من حذف الملف <b>${name}</b> نهائياً؟</p>
+        <div class="modal-footer">
+            <button onclick="execDel('${id}')" style="background:#e53e3e; padding:10px 20px;">تأكيد الحذف</button>
+            <button onclick="closeModal()" style="background:#718096; padding:10px 20px;">إلغاء</button>
+        </div>
+    `);
+}
+
+function execDel(id) {
+    closeModal();
     let church = document.getElementById("churchName").value;
     let pass = document.getElementById("password").value;
-    fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: "delete", fileId: fileId, church: church, password: pass }) })
+    showMessage("⏳ جاري الحذف...", "success");
+    fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: "delete", fileId: id, church: church, password: pass }) })
     .then(res => res.json())
     .then(data => { if(data.success) fetchMyFiles(); });
 }
