@@ -60,7 +60,10 @@
         table { width:100%; border-collapse: collapse; font-size: 13px; min-width: 400px; }
         th { background: #f7fafc; padding: 15px; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #edf2f7; }
         td { padding: 12px; text-align: center; border-bottom: 1px solid #edf2f7; }
+        
+        /* الأزرار الجديدة في الجدول */
         .btn-delete { background: #e53e3e; color: white; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 11px; }
+        .btn-download { background: #3182ce; color: white; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 11px; margin-left: 5px; }
 
         .search-box { display:none; background: #fffaf0; padding: 20px; border-radius: 12px; border-right: 6px solid #ed8936; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .result-card { background: white; padding: 15px; border-radius: 10px; margin-top: 10px; border: 1px solid #feebc8; font-size: 13px; text-align: right; line-height: 1.8; }
@@ -226,10 +229,9 @@ function checkData(rows, password, churchName, fileObject) {
     let validCount = 0;
     let descriptionData = [];
 
-    // --- الحصول على تاريخ اليوم الفعلي عند تشغيل الفحص ---
     let now = new Date();
     let todayDay = now.getDate();
-    let todayMonth = now.getMonth() + 1; // JS يبدأ من 0
+    let todayMonth = now.getMonth() + 1; 
     let todayYear = now.getFullYear();
 
     for(let i=2; i < rows.length; i++) {
@@ -251,16 +253,12 @@ function checkData(rows, password, churchName, fileObject) {
             allErrors.push(`📍 صف ${i+1} [${name}]: تاريخ الميلاد ناقص أو غير صحيح.`);
         } else {
             let birthDate = new Date(year, month - 1, day);
-            
-            // 1. فحص هل هو تاريخ اليوم؟
             if (day === todayDay && month === todayMonth && year === todayYear) {
                 allErrors.push(`📍 صف ${i+1} [${name}]: خطأ، هذا تاريخ اليوم! لا يمكن تسجيل تاريخ اليوم كـ ميلاد.`);
             } 
-            // 2. فحص هل هو في المستقبل؟
             else if (birthDate > now) {
                 allErrors.push(`📍 صف ${i+1} [${name}]: التاريخ غير منطقي (تاريخ في المستقبل).`);
             } 
-            // 3. فحص العمر (من 0 لـ 80 سنة)
             else {
                 let age = todayYear - year;
                 let m = (now.getMonth()) - (month - 1);
@@ -337,13 +335,11 @@ function uploadNow(file, password, churchName, count, levels, desc, ignoreDuplic
             } 
             else if (data.duplicate) {
                 let duplicateRows = data.message.split('--------------------------------------').filter(item => item.trim() !== '');
-                
                 let report = duplicateRows.map(item => {
                     let lines = item.split('\n').filter(l => l.trim() !== '');
                     let name = lines[0] || "اسم غير معروف";
                     let newData = lines[1] || "بيانات غير متوفرة"; 
                     let oldData = lines[2] || "بيانات غير متوفرة";
-
                     return `
                         <div class="report-item" style="border-right: 5px solid #e53e3e; background: #fffcfc; padding: 15px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: right; border-left: 1px solid #eee; border-top: 1px solid #eee;">
                             <div style="font-weight: bold; color: #2d3748; font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
@@ -361,7 +357,6 @@ function uploadNow(file, password, churchName, count, levels, desc, ignoreDuplic
                 }).join('');
                 
                 window.tempUpload = { file, password, churchName, count, levels, desc };
-
                 openModal(`
                     <h3 style="color:#e53e3e; margin-top:0; text-align:center; font-weight: 800;">🚨 مراجعة التكرار والمسابقات</h3>
                     <p style="text-align:center; font-size:14px; color:#4a5568; margin-bottom: 20px;">تم العثور على أسماء مسجلة مسبقاً بمراحل أو مسابقات مختلفة. يرجى المراجعة:</p>
@@ -439,7 +434,15 @@ function fetchMyFiles() {
             fixedStages.forEach(s => stageStats[s] = 0);
 
             data.files.forEach(f => {
-                html += `<tr><td>${f.name}</td><td><b>${f.count}</b></td><td>${f.date}</td><td><button class="btn-delete" onclick="showDel('${f.id}', '${f.name}')">حذف</button></td></tr>`;
+                html += `<tr>
+                    <td>${f.name}</td>
+                    <td><b>${f.count}</b></td>
+                    <td>${f.date}</td>
+                    <td>
+                        <button class="btn-download" onclick="downloadFile('${f.id}')"> تحميل التقرير </button>
+                        <button class="btn-delete" onclick="showDel('${f.id}', '${f.name}')">حذف</button>
+                    </td>
+                </tr>`;
                 total += parseInt(f.count || 0);
                 if(f.levels) {
                     Object.keys(f.levels).forEach(k => {
@@ -463,6 +466,11 @@ function fetchMyFiles() {
             document.getElementById("messageBox").style.display = "none";
         } else showMessage("❌ " + data.message, "error");
     });
+}
+
+function downloadFile(fileId) {
+    if(!fileId) return;
+    window.open("https://docs.google.com/uc?export=download&id=" + fileId, "_blank");
 }
 
 function searchInNames() {
