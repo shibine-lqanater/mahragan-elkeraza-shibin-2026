@@ -68,8 +68,7 @@
         .result-card { background: white; padding: 15px; border-radius: 10px; margin-top: 10px; border: 1px solid #feebc8; font-size: 13px; text-align: right; line-height: 1.8; }
         
         .modal-overlay { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
-        .modal-content { background: white; margin: 5vh auto; padding: 30px; border-radius: 20px; width: 90%; max-width: 650px; position: relative; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
-        .report-item { background: #fff5f5; border-right: 5px solid #f56565; padding: 15px; margin-bottom: 12px; border-radius: 8px; }
+        .modal-content { background: white; margin: 5vh auto; padding: 30px; border-radius: 20px; width: 90%; max-width: 650px; position: relative; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.25); } 
         .modal-footer { display: flex; justify-content: center; gap: 15px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
 
         /* --- التعديلات الجديدة للتصميم المطلوب --- */
@@ -625,8 +624,18 @@ function downloadFile(fileId) {
     const link = document.createElement('a');
     link.href = downloadUrl;
     
+    // --- التعديل المضاف لدعم النوعين .xls و .xlsx ---
+    // نضع اسماً للملف بدون تحديد امتداد هنا، 
+    // المتصفح سيأخذ الامتداد الأصلي (.xls أو .xlsx) من سيرفر جوجل تلقائياً
+    link.setAttribute('download', 'Mahragan_Report'); 
+    link.download = "Mahragan_Report"; 
+
+    // إضافة سطر يخبر المتصفح أن هذا الرابط "ملف مرفق" وليس صفحة ويب
+    link.rel = "noopener";
+    
     // لإجبار المتصفح على تحميل الملف بدلاً من فتحه (في حال كانت الملفات PDF أو صور)
-    link.setAttribute('download', ''); 
+    // أبقينا هذا السطر كما هو مع إضافة قيمة بسيطة لضمان التفعيل في المتصفحات الحديثة
+    link.setAttribute('download', 'Report'); 
     
     // فتح في نافذة مخفية لضمان عدم تأثر الصفحة الحالية
     link.target = '_self'; 
