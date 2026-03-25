@@ -177,7 +177,7 @@
 </div>
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz_0L_MlajJMnq9-dIYznbGtmfN8P2Wig61M8inunKkueWj-y_eF-KNjiCKPZbqCcrS/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwZWlYRAme_JfuiImu33D3j9qGs8GqUAQChrVIpqL63uW8iwM5ywrHO6oR0-rsDJGlg/exec";
 
 const fixedStages = ["حضانة","أولى وثانية","ثالثة ورابعة","خامسة وسادسة","إعدادى","ثانوى","جامعة","الخدام واعداد الخدام","خريجين","ديديموس","ذوى القدرات الخاصة","قانا الجليل","تعليم الكبار","الصم والبكم","سمعان الشيخ","الحرفيون"];
 
@@ -341,15 +341,24 @@ function checkData(rows, password, churchName, fileObject) {
         let cleanName = normalizeName(originalName);
         let currentRowDetails = getRowInfo(row);
 
-        if (!nameInfo[cleanName]) {
-            nameInfo[cleanName] = { name: originalName, rowNum: i + 1, info: currentRowDetails };
+        // --- تعديل منطق التكرار ليعتمد على الاسم والمرحلة ---
+        let rowStagesForDup = [];
+        for (let col = 6; col <= 13; col++) {
+            let val = row[col] ? row[col].toString().trim() : "";
+            fixedStages.forEach(fs => { if (val.includes(fs) && !rowStagesForDup.includes(fs)) rowStagesForDup.push(fs); });
+        }
+        let currentMainStage = rowStagesForDup[0] || "غير محدد";
+        let duplicateKey = cleanName + "|" + currentMainStage; // المفتاح الجديد (اسم + مرحلة)
+
+        if (!nameInfo[duplicateKey]) {
+            nameInfo[duplicateKey] = { name: originalName, rowNum: i + 1, info: currentRowDetails };
         } else {
             internalDuplicates.push({
                 name: originalName,
                 currentRow: i + 1,
                 currentInfo: currentRowDetails,
-                prevRow: nameInfo[cleanName].rowNum,
-                prevInfo: nameInfo[cleanName].info
+                prevRow: nameInfo[duplicateKey].rowNum,
+                prevInfo: nameInfo[duplicateKey].info
             });
         }
 
@@ -399,7 +408,7 @@ function checkData(rows, password, churchName, fileObject) {
         if (!allActivities[0]) allErrors.push(`📍 صف ${i+1}: لم يتم اختيار مسابقة.`);
 
         descriptionData.push(`${originalName}*${allActivities.join(" ، ")}*${day}/${month}/${year}`);
-        let mainStage = rowStages[0] || "غير محدد";
+        let mainStage = rowStages[0] || "غير مححدد";
         currentFileLevels[mainStage] = (currentFileLevels[mainStage] || 0) + 1;
         validCount++;
     }
@@ -491,20 +500,19 @@ function uploadNow(file, password, churchName, count, levels, desc, ignoreDuplic
                 let report = duplicateRows.map(item => {
                     let lines = item.split('\n').map(l => l.trim()).filter(l => l !== '');
                     
-                    // استخراج الاسم وتنظيفه بشكل أفضل
-                    let nameRaw = lines[0] || "اسم غير معروف";
-                    let name = nameRaw;
-                    if(nameRaw.includes("مكرر")) name = nameRaw.split("مكرر")[0].trim();
-                    if(nameRaw.includes(":")) name = nameRaw.split(":")[0].trim();
+                    let nameLine = lines.find(l => l.includes("الاسم") || l.includes("👤")) || lines[0] || "اسم غير معروف";
+                    let name = nameLine.replace(/الاسم|:|📍|👤|⚠️|مكرر/g, '').trim();
 
-                    // البحث المرن عن البيانات لتجنب "البيانات غير متوفرة"
-                    let newDataLine = lines.find(l => l.includes("الجديد")) || "البيانات في الملف الحالي غير متوفرة في الرسالة";
+                    let newDataLine = lines.find(l => l.includes("الجديد")) || "البيانات في الملف الحالي غير متوفرة";
+                    newDataLine = newDataLine.replace(/.*الجديد[:\s]*/, '');
+
                     let oldDataLine = lines.find(l => l.includes("السابق") || l.includes("مسجل") || l.includes("القديم")) || "البيانات السابقة غير متوفرة";
+                    oldDataLine = oldDataLine.replace(/.*(السابق|القديم|مسجل)[:\s]*/, '');
 
                     return `
                         <div class="report-item" style="border-right: 5px solid #e53e3e; background: #fffcfc; padding: 15px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: right; border-left: 1px solid #eee; border-top: 1px solid #eee;">
-                            <div style="font-weight: bold; color: #2d3748; font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                                👤 <span>${name}</span>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 18px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                                👤 <span style="color: #c53030;">${name}</span>
                             </div>
                             <div style="background: #f0fff4; border: 1px solid #c6f6d5; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 13px;">
                                 <span style="color: #2f855a; font-weight: bold;">🟢 البيانات في الملف الجديد:</span> 
