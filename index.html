@@ -1,719 +1,987 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مهرجان الكرازة - إيبارشية شبين القناطر</title>
+    <meta name="description" content="بوابة رفع بيانات مهرجان الكرازة المرقسية - إيبارشية شبين القناطر">
 
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- ==================== رؤوس أمان ==================== -->
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src * 'self' blob: data: https://*.google.com https://*.googleusercontent.com https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://unpkg.com; frame-ancestors 'none'">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta name="referrer-policy" content="no-referrer">
+    <meta name="permissions-policy" content="geolocation=(), microphone=(), camera=()">
+
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <style>
-        body { margin:0; font-family:'Cairo',sans-serif; background:#f0f2f5; color: #333; }
-        .header { background: linear-gradient(135deg,#1565c0,#0d47a1); height: 160px; display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .rect-right { position: absolute; right: 30px; max-height: 120px; width: auto; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.2)); }
-        .logo-left { position: absolute; left: 30px; max-height: 120px; width: auto; }
-        .header-title { text-align: center; color: white; font-size: 26px; font-weight: 700; line-height: 1.5; z-index: 2; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
-        
-        @media (max-width: 768px) {
-            .header { height: 110px; }
-            .rect-right { right: 10px; max-height: 70px; } 
-            .logo-left { left: 10px; max-height: 70px; }
-            .header-title { font-size: 15px; width: 45%; } 
-            .container { max-width: 92% !important; padding: 20px !important; margin: 20px auto; }
+        body, input, select, button { font-family: 'Cairo', 'Inter', sans-serif !important; }
+
+        #progressBar {
+            position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            z-index: 9999; transition: width 0.4s ease;
         }
 
-        .container { max-width:550px; margin:40px auto; background:white; padding:35px; border-radius:20px; box-shadow:0 15px 35px rgba(0,0,0,0.1); border-top: 6px solid #1565c0; }
-        label { font-weight: 700; display: block; margin-bottom: 10px; color: #2c3e50; font-size: 14px; }
-        input, select { width:100%; padding:14px; margin-bottom:18px; border-radius:10px; border:1.5px solid #dee2e6; font-size:15px; box-sizing: border-box; font-family: 'Cairo', sans-serif; transition: 0.3s; }
-        input:focus { border-color: #1565c0; outline: none; background: #f8fbff; box-shadow: 0 0 0 4px rgba(21, 101, 192, 0.1); }
-        
-        .pass-wrapper { position: relative; }
-        .toggle-btn { position: absolute; left: 12px; top: 12px; cursor: pointer; color: #666; font-size: 13px; background: #eee; padding: 2px 8px; border-radius: 5px; }
-
-        button { width:100%; padding:15px; background:linear-gradient(135deg,#2e7d32,#1b5e20); color:white; border:none; border-radius:10px; font-size:16px; cursor:pointer; margin-bottom:12px; font-weight: bold; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        button:hover { opacity: 0.9; transform: translateY(-2px); }
-        button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
-        
-        .btn-view { background: linear-gradient(135deg,#455a64,#263238); }
-        .message { margin-top:15px; font-size:14px; padding:15px; border-radius:10px; display:none; white-space: pre-line; line-height: 1.7; border: 1px solid transparent; max-height: 300px; overflow-y: auto; }
-        
-        .error { background:#fff5f5; color:#e53e3e; border-color: #feb2b2; text-align: right; animation: shake 0.4s ease-in-out; }
-        .input-error { border-color: #e53e3e !important; background: #fff5f5 !important; animation: shake 0.4s ease-in-out; }
-
-        .success { background:#f0fff4; color:#2f855a; border-color: #c6f6d5; }
-        
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-8px); }
-            50% { transform: translateX(8px); }
-            75% { transform: translateX(-8px); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
         }
-
-        .stats-card { background: #ebf8ff; padding: 20px; border-radius: 12px; border-right: 6px solid #3182ce; margin-bottom: 25px; display:none; }
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
-        .stat-item { background: white; padding: 10px; border-radius: 8px; border: 1px solid #bee3f8; font-size: 12px; font-weight: 700; text-align: center; color: #2c5282; }
-        .stat-total { text-align: center; margin-top: 15px; font-weight: 800; color: #22543d; border-top: 2px dashed #cbd5e0; padding-top: 12px; font-size: 18px; }
-
-        .history-section { margin-top: 25px; border-top: 2px solid #edf2f7; padding-top: 25px; display:none; }
-        .table-scroll { max-height: 350px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 12px; }
-        table { width:100%; border-collapse: collapse; font-size: 13px; min-width: 400px; }
-        th { background: #f7fafc; padding: 15px; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #edf2f7; }
-        td { padding: 12px; text-align: center; border-bottom: 1px solid #edf2f7; }
-        
-        .btn-delete { background: #e53e3e; color: white; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 11px; }
-        .btn-download { background: #3182ce; color: white; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 11px; margin-left: 5px; }
-
-        .search-box { display:none; background: #fffaf0; padding: 20px; border-radius: 12px; border-right: 6px solid #ed8936; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .result-card { background: white; padding: 15px; border-radius: 10px; margin-top: 10px; border: 1px solid #feebc8; font-size: 13px; text-align: right; line-height: 1.8; }
-        
-        .modal-overlay { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
-        .modal-content { background: white; margin: 5vh auto; padding: 30px; border-radius: 20px; width: 90%; max-width: 650px; position: relative; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.25); } 
-        .modal-footer { display: flex; justify-content: center; gap: 15px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
-
-        /* --- التعديلات الجديدة للتصميم المطلوب --- */
-        .upload-area {
-            border: 2px dashed #1565c0;
-            border-radius: 15px;
-            padding: 25px;
-            text-align: center;
-            background: #f8fbff;
-            cursor: pointer;
-            transition: 0.3s;
-            margin-bottom: 18px;
-            position: relative;
+        .shake-error {
+            animation: shake 0.3s ease-in-out;
+            border: 2px solid #ef4444 !important;
+            background-color: #fef2f2 !important;
         }
-        .upload-area:hover, .upload-area.dragover {
-            background: #e3f2fd;
-            border-color: #0d47a1;
-        }
-        .upload-icon { font-size: 35px; color: #1565c0; margin-bottom: 8px; }
-        .upload-text { font-size: 14px; color: #455a64; font-weight: 600; }
-        .file-name-display { margin-top: 8px; font-size: 12px; color: #2e7d32; font-weight: bold; }
-        
-        .success-modal-content { text-align: center; padding: 10px; }
-        .success-circle {
-            width: 70px; height: 70px; background: #e8f5e9; color: #4caf50;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 35px; margin: 0 auto 15px; border: 2px solid #4caf50;
-        }
-        .modal-header-custom {
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px;
-        }
+        #filesTable tbody tr { transition: background-color 0.15s ease; }
+        #filesTable tbody tr:hover { background-color: #eff6ff; }
+        .stat-card { transition: transform 0.15s, box-shadow 0.15s; cursor: default; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .stat-card.has-count { background: linear-gradient(135deg,#eff6ff,#dbeafe); border: 1px solid #3b82f6; }
     </style>
 </head>
+<body class="bg-gray-100 text-gray-800">
+    <div id="progressBar"></div>
 
-<body>
+    <!-- ==================== Header ==================== -->
+    <header class="bg-gradient-to-br from-blue-800 to-blue-900 h-40 flex items-center justify-center relative shadow-lg">
+        <img src="left-image.jpg" alt="شعار اليسار" class="absolute right-8 top-8 w-[120px] h-[120px] object-contain lazyload"
+             width="120" height="120" loading="lazy">
+        <h1 class="text-center text-white text-2xl md:text-3xl font-bold drop-shadow-lg">
+            مهرجان الكرازة المرقسية<br>إيبارشية شبين القناطر
+        </h1>
+        <img src="logo.png" alt="شعار اليمين" class="absolute left-8 top-8 w-[120px] h-[120px] object-contain lazyload"
+             width="120" height="120" loading="lazy">
+    </header>
 
-<div class="header">
-    <img src="left-image.jpg" class="rect-right">
-    <div class="header-title">مهرجان الكرازة المرقسية<br>إيبارشية شبين القناطر</div>
-    <img src="logo.png" class="logo-left">
-</div>
-
-<div id="modalOverlay" class="modal-overlay">
-    <div id="modalBody" class="modal-content"></div>
-</div>
-
-<div class="container">
-    <label>💒 اختر الكنيسة:</label>
-    <input list="churchesList" id="churchName" placeholder="🔍 ابدأ بكتابة اسم الكنيسة..." autocomplete="off">
-    <datalist id="churchesList"></datalist>
-    
-    <label>🔑 كلمة المرور:</label>
-    <div class="pass-wrapper">
-        <input type="password" id="password" placeholder="أدخل كلمة المرور الخاصة بالكنيسة">
-        <span class="toggle-btn" onclick="togglePass()">👁️ عرض</span>
+    <!-- ==================== Modal Overlay ==================== -->
+    <div id="modalOverlay" class="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden z-50" onclick="handleOverlayClick(event)">
+        <div id="modalBody" class="bg-white rounded-2xl p-8 max-w-lg w-full overflow-y-auto max-h-[85vh] shadow-2xl"></div>
     </div>
-    
-    <div id="uploadAreaContainer">
-        <label>📄 ملف الإكسيل (XLSX أو XLS):</label>
-        <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
-            <div class="upload-icon">📤</div>
-            <div class="upload-text">اضغط هنا أو اسحب الملف (xls. أو xlsx.)</div>
-            <div id="fileNameDisplay" class="file-name-display"></div>
-            <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;" onchange="handleFileSelect(this)">
+
+    <!-- ==================== Main Container ==================== -->
+   <main class="max-w-2xl mx-auto my-10 bg-white p-9 rounded-2xl shadow-lg border-t-4 border-blue-800">
+
+        <!-- الكنيسة -->
+        <label for="churchName" class="block font-bold mb-2 text-gray-800 text-sm">💒 اختر الكنيسة:</label>
+        <input list="churchesList" id="churchName"
+               placeholder="🔍 ابدأ بكتابة اسم الكنيسة..."
+               class="w-full p-4 mb-5 rounded-xl border border-gray-300 focus:border-blue-800 focus:outline-none bg-gray-50 focus:ring-4 focus:ring-blue-100"
+               autocomplete="off" maxlength="100">
+        <datalist id="churchesList"></datalist>
+
+        <!-- كلمة المرور -->
+        <label for="password" class="block font-bold mb-2 text-gray-800 text-sm">🔑 كلمة المرور:</label>
+        <div class="relative">
+            <input type="password" id="password"
+                   placeholder="أدخل كلمة المرور الخاصة بالكنيسة"
+                   class="w-full p-4 mb-5 rounded-xl border border-gray-300 focus:border-blue-800 focus:outline-none bg-gray-50 focus:ring-4 focus:ring-blue-100"
+                   autocomplete="new-password" maxlength="64">
+            <button type="button" id="togglePassBtn"
+                    class="absolute left-3 top-3 text-sm bg-gray-200 hover:bg-gray-300 rounded-md px-2 py-1 cursor-pointer transition"
+                    onclick="togglePass()">👁️ عرض</button>
         </div>
-        <button id="uploadBtn" onclick="validateFile()">⚡ فحص ورفع البيانات</button>
-    </div>
 
-    <button class="btn-view" onclick="fetchMyFiles()">📋 عرض الإحصائيات والسجل</button>
-    
-    <div id="messageBox" class="message"></div>
-
-    <div id="searchBox" class="search-box">
-        <label style="color: #c05621;">🔎 بحث سريع عن مشترك:</label>
-        <input type="text" id="searchNameInput" placeholder="اكتب اسم الشخص..." style="margin-bottom:10px;">
-        <select id="searchStageInput" style="margin-bottom:15px;">
-            <option value="">-- كل المراحل --</option>
-        </select>
-        <button class="btn-search" onclick="searchInNames()" style="background: #ed8936;">ابدأ البحث</button>
-        <div id="searchResults"></div>
-    </div>
-
-    <div id="statsCard" class="stats-card">
-        <label style="color:#2b6cb0;">📊 توزيع المراحل (إجمالي):</label>
-        <div id="statsGrid" class="stats-grid"></div>
-        <div class="stat-total">إجمالي المقيدين: <span id="totalChurchCount">0</span></div>
-    </div>
-
-    <div id="historySection" class="history-section">
-        <label>📚 الملفات المرفوعة سابقاً:</label>
-        <div class="table-scroll">
-            <table id="filesTable">
-                <thead>
-                    <tr>
-                        <th>اسم الملف</th>
-                        <th>العدد</th>
-                        <th>التاريخ</th>
-                        <th>إجراء</th>
-                    </tr>
-                </thead>
-                <tbody id="filesTableBody"></tbody>
-            </table>
+        <!-- رفع الملف -->
+        <div id="uploadAreaContainer">
+            <label class="font-bold mb-2 text-gray-800 text-sm">📄 ملف الإكسيل (XLSX أو XLS):</label>
+            <div id="dropZone"
+                 class="border-2 border-dashed border-blue-800 rounded-2xl p-6 bg-gray-50 hover:bg-gray-100 flex flex-col items-center cursor-pointer mb-5"
+                 onclick="document.getElementById('fileInput').click()">
+                <div class="text-4xl text-blue-800 mb-2">📤</div>
+                <div class="text-sm text-gray-600 mb-2">اضغط هنا أو اسحب الملف (xls أو xlsx)</div>
+                <div id="fileNameDisplay" class="text-sm text-green-700 font-bold mt-2"></div>
+                <input type="file" id="fileInput" accept=".xlsx,.xls"
+                       class="hidden" onchange="handleFileSelect(this)">
+            </div>
+            <button id="uploadBtn"
+                    class="w-full p-4 bg-gradient-to-br from-green-700 to-green-900 text-white rounded-xl font-bold hover:opacity-90 transform hover:-translate-y-0.5 transition"
+                    type="button" onclick="validateFile()">⚡ فحص ورفع البيانات</button>
         </div>
-    </div>
-</div>
 
-<script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwZWlYRAme_JfuiImu33D3j9qGs8GqUAQChrVIpqL63uW8iwM5ywrHO6oR0-rsDJGlg/exec";
+        <!-- عرض الإحصائيات -->
+        <button id="showStatsBtn"
+                class="w-full mt-4 p-4 bg-gradient-to-br from-gray-700 to-gray-900 text-white rounded-xl font-bold hover:opacity-90 transform hover:-translate-y-0.5 transition"
+                type="button" onclick="fetchMyFiles()">📋 عرض الإحصائيات والسجل</button>
 
-const fixedStages = ["حضانة","أولى وثانية","ثالثة ورابعة","خامسة وسادسة","إعدادى","ثانوى","جامعة","الخدام واعداد الخدام","خريجين","ديديموس","ذوى القدرات الخاصة","قانا الجليل","تعليم الكبار","الصم والبكم","سمعان الشيخ","الحرفيون"];
+        <!-- صندوق الرسائل -->
+        <div id="messageBox" class="mt-4 p-4 rounded-xl hidden" role="alert" aria-live="polite"></div>
 
-const searchStageSelect = document.getElementById("searchStageInput");
-fixedStages.forEach(s => { let opt = document.createElement("option"); opt.value = s; opt.innerText = s; searchStageSelect.appendChild(opt); });
+        <!-- صندوق البحث -->
+        <section id="searchBox" class="mt-6 bg-gray-50 p-5 rounded-2xl hidden">
+            <label for="searchNameInput" class="block mb-2 text-gray-800 text-sm" style="color:#c05621;">🔎 بحث سريع عن مشترك:</label>
+            <input type="text" id="searchNameInput"
+                   placeholder="اكتب اسم الشخص..."
+                   class="w-full p-3 mb-3 rounded-xl border border-gray-300 focus:border-blue-800 focus:outline-none"
+                   autocomplete="off" maxlength="100">
+            <select id="searchStageInput"
+                    class="w-full p-3 mb-3 rounded-xl border border-gray-300 focus:border-blue-800 focus:outline-none">
+                <option value="">-- كل المراحل --</option>
+            </select>
+            <button class="w-full p-3 bg-orange-600 text-white rounded-xl font-bold hover:opacity-90"
+                    type="button" onclick="searchInNames()">ابدأ البحث</button>
+            <div id="searchResults" class="mt-4"></div>
+        </section>
 
-const churches = ["كنيسة العذراء المطرانية", "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي", "العذراء و الانبا بيشوي المنية", "العذراء و الانبا موسي الخصوص", "العذراء و البابا بطرس الخانكة", "العذراء و الرسولين", "العذراء و الشهدين القلج", "العذراء و الشهيد ابانوب القلج", "العذراء و الشهيد ابانوب المرج الغربية", "العذراء و الملاك العكرشة", "العذراء و الملاك ميخائيل الخصوص", "العذراء و مارجرجس كفر شبين", "العذراء و مارمينا الجبل الاصفر", "العذراء و ماريوحنا الخصوص", "العذراء و يوسف النجار الخصوص", "كنيسة ابوسفين الخصوص", "كنيسة ابوسفين و دميانة الجبل الاصفر", "كنيسة الانبا بيشوي كوم الاطرون", "كنيسة الانبا كاراس الخصوص", "كنيسة الانبا كاراس نوي", "كنيسة البابا اثناسيوس الخصوص", "كنيسة البابا كيرلس كفر الدير", "كنيسة الشهيدة دميانة ميت عاصم", "كنيسة الشهيدة دميانة ميت كنانة", "كنيسة الملاك القشيش", "كنيسة الملاك القلزم", "كنيسة مارجرجس بلتان", "كنيسة مارجرجس طوخ", "كنيسة مارجرجس قها", "كنيسة مارجرجس و البابا ديسقورس", "كنيسة مارمينا ساحل دجوي", "كنيسة مارمينا و البابا كيرلس الخصوص", "مارجرجس ابو زعبل", "مارجرجس شبين القناطر", "مذبح الامير تادرس الخصوص"].sort();
+        <!-- بطاقة الإحصائيات -->
+        <section id="statsCard" class="mt-6 bg-blue-50 p-5 rounded-2xl border-r-4 border-blue-600 hidden">
+            <label class="block mb-2 text-gray-800 text-sm" style="color:#2b6cb0;">📊 توزيع المراحل (إجمالي):</label>
+            <div id="statsGrid" class="grid grid-cols-2 gap-2 mt-3"></div>
+            <div class="mt-4 text-center font-bold text-lg text-green-800">إجمالي المقيدين: <span id="totalChurchCount">0</span></div>
+        </section>
 
-const datalist = document.getElementById('churchesList');
-churches.forEach(name => { let option = document.createElement('option'); option.value = name; datalist.appendChild(option); });
+        <!-- سجل الملفات -->
+        <section id="historySection" class="mt-6 hidden">
+            <label class="block mb-2 text-gray-800 text-sm">📚 الملفات المرفوعة سابقاً:</label>
+            <div class="overflow-x-auto">
+                <table id="filesTable" class="w-full table-auto border-collapse">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="p-3 border-b-2 border-gray-300 text-right">اسم الملف</th>
+                            <th class="p-3 border-b-2 border-gray-300 text-right">العدد</th>
+                            <th class="p-3 border-b-2 border-gray-300 text-right">التاريخ</th>
+                            <th class="p-3 border-b-2 border-gray-300 text-right">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="filesTableBody"></tbody>
+                </table>
+            </div>
+        </section>
 
-// --- منطق السحب والإفلات ---
-const dropZone = document.getElementById('dropZone');
-['dragover', 'dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); });
-});
-dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', (e) => {
-    dropZone.classList.remove('dragover');
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-        document.getElementById('fileInput').files = files;
-        handleFileSelect(document.getElementById('fileInput'));
+    </main>
+
+    <footer class="text-center text-gray-400 text-xs py-6 border-t border-gray-200 mt-2">
+        <p>إيبارشية شبين القناطر &bull; مهرجان الكرازة المرقسية &bull; جميع الحقوق محفوظة &copy; 2026</p>
+    </footer>
+
+    <script>
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzPPILdWpSA9sO1112NEO8J5x2yYiJ0tzL0_KTV610sLr_jvAwLAF6Kju_Mx8yANiCE2g/exec";
+
+// ==================== دوال الأمان ====================
+function generateNonce(){ return Math.random().toString(36).substring(2, 10); }
+
+// HMAC-SHA256 متوافق مع verifyTokenSecure في Apps Script
+async function generateToken(church, action, time, nonce, hashedPassword) {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+        'raw', enc.encode(hashedPassword),
+        {name:'HMAC', hash:'SHA-256'}, false, ['sign']
+    );
+    // تم إزالة النص العربي (اسم الكنيسة) لتجنب مشاكل فك التشفير بين المتصفح والسيرفر
+    const payload = action + ':' + time + ':' + nonce;
+    const sig = await crypto.subtle.sign('HMAC', key, enc.encode(payload));
+    return Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function showProgress(pct){
+    const bar = document.getElementById('progressBar');
+    bar.style.width = pct + '%';
+    if(pct >= 100) setTimeout(()=>{ bar.style.width='0%'; }, 700);
+}
+
+async function downloadReportSecure(fileId, fileName) {
+    const churchInput = document.getElementById('churchName');
+    const passwordInput = document.getElementById('password');
+    const church = churchInput ? sanitize(churchInput.value) : "";
+    const pass = passwordInput ? passwordInput.value : "";
+    if(!church || !pass) {
+        showMessage("⚠️ أدخل اسم الكنيسة والباسورد لتحميل التقرير.", "error", true);
+        return;
     }
-});
+    const hashedPass = await hashPassword(pass);
+    const time = Date.now();
+    const nonce = generateNonce();
+    const token = await generateToken(church, "download", time, nonce, hashedPass);
+    
+    setLoadingState(true);
+    showMessage("⏳ جاري تجهيز الملف للتحميل…", "success");
 
-function handleFileSelect(input) {
-    const display = document.getElementById('fileNameDisplay');
-    if (input.files.length > 0) {
-        display.innerHTML = "✅ الملف المختار: " + input.files[0].name;
-        display.style.color = "#2f855a";
-        display.style.fontWeight = "bold";
-    } else {
-        display.innerHTML = "";
-    }
-}
-
-function togglePass() {
-    const p = document.getElementById("password");
-    p.type = p.type === "password" ? "text" : "password";
-}
-
-function openModal(content) {
-    document.getElementById("modalBody").innerHTML = content;
-    document.getElementById("modalOverlay").style.display = "block";
-}
-
-function closeModal() {
-    document.getElementById("modalOverlay").style.display = "none";
-    const btn = document.getElementById("uploadBtn");
-    if(btn) btn.disabled = false;
-    const msgBox = document.getElementById("messageBox");
-    if (msgBox && msgBox.innerHTML.includes("جاري رفع")) {
-        msgBox.style.display = "none";
-    }
-}
-
-function showMessage(text, type, ignoreFileCheck = false) {
-    let box = document.getElementById("messageBox");
-    if(!box) return;
-    box.style.display = "block";
-    box.style.animation = 'none';
-    box.offsetHeight; 
-    box.style.animation = null; 
-    box.className = "message " + type;
-    box.innerHTML = text;
-
-    if (type === "error") {
-        const inputIds = ["churchName", "password"];
-        if(!ignoreFileCheck) inputIds.push("fileInput");
-
-        inputIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (el && (!el.value || (id === "churchName" && !churches.includes(el.value)))) {
-                el.classList.add("input-error");
-                el.style.border = "2px solid #e53e3e";
-                el.oninput = () => { el.classList.remove("input-error"); el.style.border = ""; };
-                el.onchange = () => { el.classList.remove("input-error"); el.style.border = ""; };
+    fetch(WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+            action: "download",
+            fileId: fileId,
+            church: church,
+            password: hashedPass,
+            token: token,
+            time: time,
+            nonce: nonce
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        setLoadingState(false);
+        if(data.success && data.fileData) {
+            const byteCharacters = atob(data.fileData);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
             }
-        });
-    }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], {type: data.mimeType});
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = data.fileName || fileName || "report.xlsx";
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            showMessage("✅ تم تحميل الملف بنجاح.", "success");
+        } else {
+            showMessage("❌ " + sanitize(data.message||''), "error");
+        }
+    })
+    .catch(err => {
+        setLoadingState(false);
+        showMessage("❌ خطأ اتصال: " + err, "error");
+    });
 }
 
-function normalizeName(text) {
-    if (!text) return "";
+        /* ==================== بيانات ثابتة ==================== */
+        const fixedStages = [
+            "حضانة","أولى وثانية","ثالثة ورابعة","خامسة وسادسة","إعدادى",
+            "ثانوى","جامعة","الخدام واعداد الخدام","خريجين","ديديموس",
+            "ذوى القدرات الخاصة","قانا الجليل","تعليم الكبار","الصم والبكم",
+            "سمعان الشيخ","الحرفيون"
+        ];
+
+        // ملء قائمة المراحل في صندوق البحث
+        const stageSelect = document.getElementById("searchStageInput");
+        fixedStages.forEach(s => {
+            const opt = document.createElement("option");
+            opt.value = s;
+            opt.textContent = s;
+            stageSelect.appendChild(opt);
+        });
+
+        // قائمة الكنائس (مُرتّبة)
+        const churches = [
+            "كنيسة العذراء المطرانية","العذراء و ابوسفين السلمانية","العذراء و ابوسفين دجوي",
+            "العذراء و الانبا بيشوي المنية","العذراء و الانبا موسي الخصوص","العذراء و البابا بطرس الخانكة",
+            "العذراء و الرسولين","العذراء و الشهدين القلج","العذراء و الشهيد ابانوب القلج",
+            "العذراء و الشهيد ابانوب المرج الغربية","العذراء و الملاك العكرشة","العذراء و الملاك ميخائيل الخصوص",
+            "العذراء و مارجرجس كفر شبين","العذراء و مارمينا الجبل الاصفر","العذراء و ماريوحنا الخصوص",
+            "العذراء و يوسف النجار الخصوص","كنيسة ابوسفين الخصوص","كنيسة ابوسفين و دميانة الجبل الاصفر",
+            "كنيسة الانبا بيشوي كوم الاطرون","كنيسة الانبا كاراس الخصوص","كنيسة الانبا كاراس نوي",
+            "كنيسة البابا اثناسيوس الخصوص","كنيسة البابا كيرلس كفر الدير","كنيسة الشهيدة دميانة ميت عاصم",
+            "كنيسة الشهيدة دميانة ميت كنانة","كنيسة الملاك القشيش","كنيسة الملاك القلزم",
+            "كنيسة مارجرجس بلتان","كنيسة مارجرجس طوخ","كنيسة مارجرجس قها",
+            "كنيسة مارجرجس و البابا ديسقورس","كنيسة مارمينا ساحل دجوي","كنيسة مارمينا و البابا كيرلس الخصوص",
+            "مارجرجس ابو زعبل","مارجرجس شبين القناطر","مذبح الامير تادرس الخصوص"
+        ].sort();
+
+        // ملء datalist بالكنائس
+        const datalist = document.getElementById('churchesList');
+        churches.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            datalist.appendChild(opt);
+        });
+
+        /* ==================== وظائف مساعدة ==================== */
+
+        function sanitize(str){
+            if(!str) return "";
+            return str.replace(/[&<>"'`=\/]/g, s => ({
+                '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'" :'&#39;','`':'&#x60;','=':'&#x3D;','/':'&#x2F;'
+            })[s]);
+        }
+       function normalizeName(text){
+    if(!text) return "";
     return text.toString()
         .trim()
-        .replace(/\s+/g, ' ')
-        .replace(/[أإآا]/g, 'ا')
-        .replace(/ة/g, 'ه')
-        .replace(/ى/g, 'ي')
-        .replace(/[ًٌٍَُِّ]/g, '');
+        .replace(/\s+/g,' ')
+        .replace(/[أإآا]/g,'ا')
+        .replace(/ة/g,'ه')
+        .replace(/ى/g,'ي')
+        .replace(/[ًٌٍَُِّ]/g,'');
+}
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function getRowInfo(row) {
-    let day = row[3] || "?";
-    let month = row[4] || "?";
-    let year = row[5] || "?";
-    let activities = [];
-    let stage = "غير محدد";
+function setLoadingState(isLoading){
+    const uploadBtn = document.getElementById('uploadBtn');
+    const statsBtn = document.getElementById('showStatsBtn');
     
-    for (let col = 6; col <= 13; col++) {
-        let val = row[col] ? row[col].toString().trim() : "";
-        if (val && !val.includes("ختر")) {
-            activities.push(val);
-            fixedStages.forEach(fs => { if (val.includes(fs)) stage = fs; });
-        }
+    let overlay = document.getElementById('globalLoadingOverlay');
+    if(!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'globalLoadingOverlay';
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100vw';
+        overlay.style.height = '100vh';
+        overlay.style.backgroundColor = 'rgba(255, 255, 255, 0.6)';
+        overlay.style.zIndex = '99999';
+        overlay.style.cursor = 'wait';
+        document.body.appendChild(overlay);
     }
-    return `<b>المرحلة:</b> ${stage} | 📅 <b>الميلاد:</b> ${day}/${month}/${year} <br> 🏆 <b>المسابقات:</b> ${activities.join(" ، ")}`;
-}
 
-function validateFile() {
-    document.querySelectorAll(".input-error").forEach(el => el.classList.remove("input-error"));
-    let churchName = document.getElementById("churchName").value;
-    let password = document.getElementById("password").value.trim();
-    let fileInput = document.getElementById("fileInput");
-    let file = fileInput.files[0];
-    
-    if(!churchName || !churches.includes(churchName) || !password || !file) {
-        showMessage("⚠️ تأكد من اختيار الكنيسة وإدخال الباسورد واختيار الملف.", "error");
-        return;
+    if(isLoading){
+        overlay.style.display = 'block';
+        if(uploadBtn) {
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = "⏳ جاري العمل...";
+            uploadBtn.classList.add('opacity-50','cursor-not-allowed');
+        }
+        if(statsBtn) {
+            statsBtn.disabled = true;
+            statsBtn.classList.add('opacity-50','cursor-not-allowed');
+        }
+    }else{
+        overlay.style.display = 'none';
+        if(uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = "⚡ فحص ورفع البيانات";
+            uploadBtn.classList.remove('opacity-50','cursor-not-allowed');
+        }
+        if(statsBtn) {
+            statsBtn.disabled = false;
+            statsBtn.classList.remove('opacity-50','cursor-not-allowed');
+        }
+        showProgress(100);
     }
-    
-    let reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            let data = new Uint8Array(e.target.result);
-            let workbook = XLSX.read(data, {type: 'array'});
-            let sheetName = workbook.SheetNames[0];
-            let sheet = workbook.Sheets[sheetName];
-            let rows = XLSX.utils.sheet_to_json(sheet, {header: 1});
-            checkData(rows, password, churchName, file);
-        } catch (err) {
-            showMessage("❌ خطأ في قراءة ملف الإكسيل. تأكد من جودة الملف.", "error");
-        }
-    };
-    reader.readAsArrayBuffer(file);
 }
+        /* ==================== سحب وإفلات ==================== */
+        const dropZone = document.getElementById('dropZone');
+        ['dragover','dragleave','drop'].forEach(ev=>{
+            dropZone.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();});
+        });
+        dropZone.addEventListener('dragover',()=>dropZone.classList.add('dragover'));
+        dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop',e=>{
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if(files.length){
+                document.getElementById('fileInput').files = files;
+                handleFileSelect(document.getElementById('fileInput'));
+            }
+        });
 
-function checkData(rows, password, churchName, fileObject) {
-    let allErrors = []; 
-    let nameInfo = {};
-    let internalDuplicates = []; 
-    let currentFileLevels = {}; 
-    let validCount = 0;
-    let descriptionData = [];
+        /* Enter للبحث */
+        ['searchNameInput','searchStageInput'].forEach(id=>{
+            document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') searchInNames(); });
+        });
 
-    let now = new Date();
-    let todayDay = now.getDate();
-    let todayMonth = now.getMonth() + 1; 
-    let todayYear = now.getFullYear();
-
-    for(let i=2; i < rows.length; i++) {
-        let row = rows[i];
-        if (!row || row.length === 0) continue;
-        
-        let originalName = row[0] ? row[0].toString().trim().replace(/\s+/g, ' ') : "";
-        if(!originalName) continue;
-
-        let cleanName = normalizeName(originalName);
-        let currentRowDetails = getRowInfo(row);
-
-        // --- تعديل منطق التكرار ليعتمد على الاسم والمرحلة ---
-        let rowStagesForDup = [];
-        for (let col = 6; col <= 13; col++) {
-            let val = row[col] ? row[col].toString().trim() : "";
-            fixedStages.forEach(fs => { if (val.includes(fs) && !rowStagesForDup.includes(fs)) rowStagesForDup.push(fs); });
-        }
-        let currentMainStage = rowStagesForDup[0] || "غير محدد";
-        let duplicateKey = cleanName + "|" + currentMainStage; // المفتاح الجديد (اسم + مرحلة)
-
-        if (!nameInfo[duplicateKey]) {
-            nameInfo[duplicateKey] = { name: originalName, rowNum: i + 1, info: currentRowDetails };
-        } else {
-            internalDuplicates.push({
-                name: originalName,
-                currentRow: i + 1,
-                currentInfo: currentRowDetails,
-                prevRow: nameInfo[duplicateKey].rowNum,
-                prevInfo: nameInfo[duplicateKey].info
-            });
+        /* ==================== معالجة اختيار ملف ==================== */
+        function handleFileSelect(input){
+            const disp = document.getElementById('fileNameDisplay');
+            if(input.files.length){
+                disp.textContent = "✅ الملف المختار: "+input.files[0].name;
+                disp.classList.remove('hidden');
+            }else{
+                disp.textContent = "";
+                disp.classList.add('hidden');
+            }
         }
 
-        let gender = row[2] ? row[2].toString().trim() : "";
-        let day = parseInt(row[3]); 
-        let month = parseInt(row[4]); 
-        let year = parseInt(row[5]);
-        
-        if (isNaN(day) || isNaN(month) || isNaN(year)) {
-            allErrors.push(`📍 صف ${i+1} [${originalName}]: تاريخ الميلاد ناقص أو غير صحيح.`);
-        } else {
-            let birthDate = new Date(year, month - 1, day);
-            if (day === todayDay && month === todayMonth && year === todayYear) {
-                allErrors.push(`📍 صف ${i+1} [${originalName}]: خطأ، هذا تاريخ اليوم! لا يمكن تسجيل تاريخ اليوم كـ ميلاد.`);
-            } 
-            else if (birthDate > now) {
-                allErrors.push(`📍 صف ${i+1} [${originalName}]: التاريخ غير منطقي (تاريخ في المستقبل).`);
-            } 
-            else {
-                let age = todayYear - year;
-                let m = (now.getMonth()) - (month - 1);
-                if (m < 0 || (m === 0 && todayDay < day)) { age--; }
-                if (age < 0 || age > 80) {
-                    allErrors.push(`📍 صف ${i+1} [${originalName}]: السن (${age} سنة) خارج النطاق المسموح (0-80).`);
+        /* ==================== إظهار/إخفاء كلمة المرور ==================== */
+        function togglePass(){
+            const p = document.getElementById('password');
+            const btn = document.getElementById('togglePassBtn');
+            if(p.type === "password"){
+                p.type = "text";
+                btn.textContent = "🙈 إخفاء";
+            } else {
+                p.type = "password";
+                btn.textContent = "👁️ عرض";
+            }
+        }
+
+        /* ==================== نافذة Modal ==================== */
+        function openModal(content){
+            document.getElementById('modalBody').innerHTML = content;
+            document.getElementById('modalOverlay').classList.remove('hidden');
+        }
+        function closeModal(){
+            document.getElementById('modalOverlay').classList.add('hidden');
+            tempUpload = null; // مسح بيانات التحميل المؤقتة من الذاكرة
+            const btn = document.getElementById('uploadBtn');
+            if(btn) btn.disabled = false;
+            const msg = document.getElementById('messageBox');
+            if(msg && msg.innerHTML.includes('جاري رفع')) msg.classList.add('hidden');
+        }
+        function handleOverlayClick(e){
+            if(e.target === document.getElementById('modalOverlay')) closeModal();
+        }
+
+        /* ==================== رسائل للمستخدم ==================== */
+        function showMessage(text, type, ignoreFileCheck=false){
+            const box = document.getElementById('messageBox');
+            box.className = "mt-4 p-4 rounded-xl";
+            if(type==="error") box.classList.add('bg-red-100','border','border-red-400','text-red-700');
+            else if(type==="success") box.classList.add('bg-green-100','border','border-green-400','text-green-700');
+            else box.classList.add('bg-gray-100','border','border-gray-300','text-gray-800');
+            box.innerHTML = text; // النص معقّم من المصدر قبل الاستدعاء
+            box.classList.remove('hidden');
+            if(type==="error"){
+                const ids = ["churchName","password"];
+                if(!ignoreFileCheck) ids.push("fileInput");
+                ids.forEach(id=>{
+                    const el = document.getElementById(id);
+                    if(el && (!el.value || (id==="churchName" && !churches.includes(el.value)))){
+                        el.classList.add('border-red-500');
+                        el.oninput = ()=>{ el.classList.remove('border-red-500'); };
+                        el.onchange = el.oninput;
+                    }
+                });
+            }
+        }
+
+        /* ==================== استخراج معلومات الصفوف ==================== */
+      function getRowInfo(row){
+            const day = row[3]||"?", month=row[4]||"?", year=row[5]||"?";
+            const activities = []; let stage = "غير محدد"; 
+            for(let c=6;c<=13;c++){
+                const val = row[c]?row[c].toString().trim():"";
+                if(val && !val.includes("ختر")){
+                    activities.push(val);
+                    fixedStages.forEach(fs=>{if(val.includes(fs)) stage=fs;});
                 }
             }
+            return `<b>المرحلة:</b> ${stage} \vert  📅 <b>الميلاد:</b> ${day}/${month}/${year} <br> 🏆 <b>المسابقات:</b> ${activities.join(" ، ")}`;
         }
 
-        let allActivities = [];
-        let rowStages = [];
-        let firstAct = row[6] ? row[6].toString().trim() : "";
-        if (!firstAct || firstAct === "" || firstAct.includes("اختر المرحلة")) {
-            allErrors.push(`📍 صف ${i+1} [${originalName}]: يجب اختيار المسابقة في الخانة الأولى.`);
+        /* ==================== التحقق من صحة الملف قبل الإرسال ==================== */
+       function validateFile(){
+            document.querySelectorAll('.border-red-500').forEach(el=>el.classList.remove('border-red-500'));
+
+            const churchInput = document.getElementById('churchName');
+            const passwordInput = document.getElementById('password');
+            const fileInput = document.getElementById('fileInput');
+            const dropZone = document.getElementById('dropZone'); // نحتاجه للهزة
+
+            const church = sanitize(churchInput.value);
+            const password = passwordInput.value.trim(); // لا نعقّم كلمة المرور لأنها ستُشفّر بـ SHA-256
+            const file = fileInput.files[0];
+
+            if(!church || !churches.includes(church) || !password || password.length < 4 || !file){
+                if(!church || !churches.includes(church)) {
+                    churchInput.classList.add('shake-error');
+                    setTimeout(() => churchInput.classList.remove('shake-error'), 500);
+                }
+                if(!password || password.length < 4) {
+                    passwordInput.classList.add('shake-error');
+                    setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
+                }
+                if(!file) {
+                    dropZone.classList.add('shake-error');
+                    setTimeout(() => dropZone.classList.remove('shake-error'), 500);
+                }
+                const msg = !password || password.length < 4
+                    ? "⚠️ كلمة المرور يجب أن تكون على الأقل 4 أحرف."
+                    : "⚠️ تأكد من اختيار الكنيسة وإدخال كلمة المرور واختيار الملف.";
+                showMessage(msg, "error");
+                return;
+            }
+
+            // تحقق من نوع وحجم الملف
+            const allowedTypes = [
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "application/vnd.ms-excel"
+            ];
+            const validExt  = /\.(xlsx|xls)$/i.test(file.name);
+            const validType = allowedTypes.includes(file.type) || file.type === '';
+            if(!validExt || !validType || file.size > 5*1024*1024){
+                dropZone.classList.add('shake-error');
+                setTimeout(() => dropZone.classList.remove('shake-error'), 500);
+
+                showMessage("❌ نوع أو حجم الملف غير مقبول. يُسمح فقط بملفات XLSX/XLS حتى 5 مB.", "error");
+                return;
+            }
+
+           const reader = new FileReader();
+reader.onload = function(e) {
+    try {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, {type: 'array'});
+        const sheetName = wb.SheetNames[0];
+        const sheet = wb.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, {header: 1});
+        
+        if (typeof checkData === "function") {
+            checkData(rows, password, church, file);
+        } else {
+            console.error("دالة checkData غير معرفة!");
+        }
+    } catch (err) {
+        console.error("حدث خطأ تقني:", err);
+        showMessage("❌ فشل في معالجة الملف: " + sanitize(err.message||''), "error");
+    }
+};
+reader.readAsArrayBuffer(file);
         }
 
-        for (let col = 6; col <= 13; col++) { 
-            let val = row[col] ? row[col].toString().trim() : "";
-            if (val && !val.includes("ختر")) {
-                allActivities.push(val);
-                fixedStages.forEach(fs => { if (val.includes(fs) && !rowStages.includes(fs)) rowStages.push(fs); });
+        /* ==================== فحص البيانات داخل الملف ==================== */
+        function checkData(rows, password, churchName, fileObject){
+            const allErrors = [], nameInfo = {}, internalDuplicates = [], descriptionData = [];
+            const currentFileLevels = {}, now = new Date();
+            const todayDay = now.getDate(), todayMonth = now.getMonth()+1, todayYear = now.getFullYear();
+            let validCount = 0;
+
+            for(let i=2;i<rows.length;i++){
+                const row = rows[i];
+                if(!row || row.length===0) continue;
+
+                const originalName = row[0]?row[0].toString().trim().replace(/\s+/g,' '):"";
+                if(!originalName) continue;
+
+                const cleanName = normalizeName(originalName);
+                const currentRowDetails = getRowInfo(row);
+
+                // منطق التكرار (اسم + مرحلة)
+                const rowStages = [];
+                for(let c=6;c<=13;c++){
+                    const val = row[c]?row[c].toString().trim():"";
+                    fixedStages.forEach(fs=>{if(val.includes(fs) && !rowStages.includes(fs)) rowStages.push(fs);});
+                }
+                const mainStage = rowStages[0]||"غير محدد";
+                const dupKey = `${cleanName}\vert ${mainStage}`;
+
+                if(!nameInfo[dupKey]){
+                    nameInfo[dupKey] = {name:originalName,rowNum:i+1,info:currentRowDetails};
+                }else{
+                    internalDuplicates.push({
+                        name:originalName,
+                        currentRow:i+1,
+                        currentInfo:currentRowDetails,
+                        prevRow:nameInfo[dupKey].rowNum,
+                        prevInfo:nameInfo[dupKey].info
+                    });
+                }
+
+                const gender = row[2]?row[2].toString().trim():"";
+                const day = parseInt(row[3]), month = parseInt(row[4]), year = parseInt(row[5]);
+
+                if(isNaN(day)||isNaN(month)||isNaN(year)){
+                    allErrors.push(`📍 صف ${i+1} [${originalName}]: تاريخ الميلاد ناقص أو غير صحيح.`);
+                }else{
+                    const birthDate = new Date(year, month-1, day);
+                    if(day===todayDay && month===todayMonth && year===todayYear){
+                        allErrors.push(`📍 صف ${i+1} [${originalName}]: لا يمكن تسجيل تاريخ اليوم كـ ميلاد.`);
+                    }else if(birthDate>now){
+                        allErrors.push(`📍 صف ${i+1} [${originalName}]: تاريخ الميلاد في المستقبل.`);
+                    }else{
+                        let age = todayYear - year;
+                        const m = now.getMonth() - (month-1);
+                        if(m<0 || (m===0 && todayDay<day)) age--;
+                        if(age<0 || age>80){
+                            allErrors.push(`📍 صف ${i+1} [${originalName}]: العمر (${age}) خارج النطاق (0‑80).`);
+                        }
+                    }
+                }
+
+                const activities = [], rowStages2 = [];
+                const firstAct = row[6]?row[6].toString().trim():"";
+                if(!firstAct || firstAct.includes("اختر المرحلة")){
+                    allErrors.push(`📍 صف ${i+1} [${originalName}]: يجب اختيار مسابقة في الخانة الأولى.`);
+                }
+
+                for(let c=6;c<=13;c++){
+                    const val = row[c]?row[c].toString().trim():"";
+                    if(val && !val.includes("ختر")){
+                        activities.push(val);
+                        fixedStages.forEach(fs=>{if(val.includes(fs) && !rowStages2.includes(fs)) rowStages2.push(fs);});
+                    }
+                }
+
+                if(rowStages2.length>1) allErrors.push(`📍 صف ${i+1}: تداخل مراحل (${rowStages2.join(" و ")}).`);
+                if(originalName.split(" ").filter(p=>p).length<3) allErrors.push(`📍 صف ${i+1}: الاسم ليس ثلاثياً.`);
+                if(gender!=="ذكر" && gender!=="انثى") allErrors.push(`📍 صف ${i+1}: لم يتم تحديد النوع.`);
+                if(!activities[0]) allErrors.push(`📍 صف ${i+1}: لم يتم اختيار مسابقة.`);
+
+                descriptionData.push(`${originalName}*${activities.join(" ، ")}*${day}/${month}/${year}`);
+                const mainStage2 = rowStages2[0]||"غير محدد";
+                currentFileLevels[mainStage2] = (currentFileLevels[mainStage2]||0)+1;
+                validCount++;
             }
+
+            if(allErrors.length){
+                showMessage("❌ أخطاء في البيانات:<br>" + allErrors.join("<br>"), "error");
+                return;
+            }
+
+            if(internalDuplicates.length){
+                showInternalDuplicateModal(internalDuplicates, fileObject, password, churchName, validCount, currentFileLevels, descriptionData.join("\n"));
+                return;
+            }
+
+            uploadNow(fileObject, password, churchName, validCount, currentFileLevels, descriptionData.join("\n"), false, false);
         }
 
-        if (rowStages.length > 1) allErrors.push(`📍 صف ${i+1}: تداخل مراحل (${rowStages.join(" و ")}).`);
-        if (originalName.split(" ").filter(p=>p).length < 3) allErrors.push(`📍 صف ${i+1}: الاسم ليس ثلاثياً.`);
-        if (gender !== "ذكر" && gender !== "انثى") allErrors.push(`📍 صف ${i+1}: لم يتم تحديد النوع.`);
-        if (!allActivities[0]) allErrors.push(`📍 صف ${i+1}: لم يتم اختيار مسابقة.`);
-
-        descriptionData.push(`${originalName}*${allActivities.join(" ، ")}*${day}/${month}/${year}`);
-        let mainStage = rowStages[0] || "غير مححدد";
-        currentFileLevels[mainStage] = (currentFileLevels[mainStage] || 0) + 1;
-        validCount++;
-    }
-
-    if(allErrors.length > 0) {
-        showMessage("❌ أخطاء في البيانات:\n" + allErrors.join("\n"), "error");
-        return;
-    }
-
-    if (internalDuplicates.length > 0) {
-        showInternalDuplicateModal(internalDuplicates, fileObject, password, churchName, validCount, currentFileLevels, descriptionData.join("\n"));
-        return;
-    }
-    
-    uploadNow(fileObject, password, churchName, validCount, currentFileLevels, descriptionData.join("\n"));
-}
-
-function showInternalDuplicateModal(dups, file, password, churchName, count, levels, desc) {
-    let report = dups.map(dup => `
-        <div class="report-item" style="border-right: 5px solid #e53e3e; background: #fffcfc; padding: 15px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: right; border-left: 1px solid #eee; border-top: 1px solid #eee;">
-            <div style="font-weight: bold; color: #2d3748; font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                👤 <span>${dup.name}</span>
-            </div>
-            <div style="background: #f0fff4; border: 1px solid #c6f6d5; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 13px;">
-                <span style="color: #2f855a; font-weight: bold;">🟢 البيانات في الصف (رقم ${dup.currentRow}):</span> 
-                <div style="margin-top: 5px; color: #276749; line-height: 1.6;">${dup.currentInfo}</div>
-            </div>
-            <div style="background: #fff5f5; border: 1px solid #fed7d7; padding: 10px; border-radius: 8px; font-size: 13px;">
-                <span style="color: #c53030; font-weight: bold;">🔴 البيانات المكررة في صف (رقم ${dup.prevRow}):</span>
-                <div style="margin-top: 5px; color: #9b2c2c; line-height: 1.6;">${dup.prevInfo}</div>
-            </div>
-        </div>`).join('');
-
-    window.tempUpload = { file, password, churchName, count, levels, desc };
-    
-    openModal(`
-        <h3 style="color:#e53e3e; margin-top:0; text-align:center; font-weight: 800;">🚨 تكرار داخل ملف الإكسيل</h3>
-        <p style="text-align:center; font-size:14px; color:#4a5568; margin-bottom: 20px;">الأسماء التالية مكررة داخل الشيت. راجع (المرحلة، الميلاد، والمسابقات):</p>
-        <div style="max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #edf2f7; border-radius: 15px; background: #f7fafc;">
-            ${report}
-        </div>
-        <div style="margin-top:25px; text-align:center;">
-            <p style="font-weight:bold; color: #2d3748; margin-bottom:15px;">هل تريد الاستمرار في الرفع رغم وجود التكرار؟</p>
-            <div class="modal-footer" style="display:flex; gap:12px; justify-content: center;">
-                <button onclick="confirmIgnore()" style="background: #e53e3e; flex:1; padding: 12px; font-weight: bold; border-radius: 8px; color:white; border:none; cursor:pointer;">نعم، ارفع التكرار</button>
-                <button onclick="closeModal()" style="background: #718096; flex:1; padding: 12px; font-weight: bold; border-radius: 8px; color:white; border:none; cursor:pointer;">إلغاء</button>
-            </div>
-        </div>
-    `);
-}
-
-function uploadNow(file, password, churchName, count, levels, desc, ignoreDuplicate = false) {
-    const btn = document.getElementById("uploadBtn");
-    if(btn) btn.disabled = true;
-    showMessage("⏳ جاري رفع ومعالجة البيانات...", "success");
-
-    let reader = new FileReader();
-    reader.onload = function(e) {
-        let base64 = e.target.result.split(',')[1];
-        fetch(WEB_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify({ 
-                fileName: file.name, fileData: base64, church: churchName, password: password, 
-                count: count, levels: levels, description: desc, ignoreDuplicate: ignoreDuplicate 
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) { 
-                if(btn) btn.disabled = false;
-                document.getElementById("fileNameDisplay").innerHTML = "";
-                document.getElementById("fileInput").value = "";
-                
-                openModal(`
-                    <div class="success-modal-content">
-                        <div class="modal-header-custom">
-                            <h3 style="margin:0;">تم بنجاح</h3>
-                            <span onclick="closeModal()" style="cursor:pointer; font-size:24px; color:#999;">×</span>
-                        </div>
-                        <div class="success-circle">✓</div>
-                        <p style="font-size: 18px; color: #333; font-weight: 600;">تم رفع ${count} مشترك بنجاح</p>
-                        <button class="btn-confirm" onclick="closeModal()" style="background: #0056b3; color: white; padding: 10px 50px; border-radius: 8px; border: none; font-size: 16px; cursor: pointer; margin-top: 15px;">حسناً</button>
+        /* ==================== عرض تكرارات داخل الملف ==================== */
+        function showInternalDuplicateModal(dups, file, password, churchName, count, levels, desc){
+            const report = dups.map(dup=>`
+                <div class="border-r-4 border-red-600 bg-red-50 p-4 mb-4 rounded-lg">
+                    <div class="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                        👤 <span>${sanitize(dup.name)}</span>
                     </div>
-                `);
-                fetchMyFiles();
-            } 
-            else if (data.duplicate) {
-                let duplicateRows = data.message.split('--------------------------------------').filter(item => item.trim() !== '');
-                let report = duplicateRows.map(item => {
-                    let lines = item.split('\n').map(l => l.trim()).filter(l => l !== '');
-                    
-                    let nameLine = lines.find(l => l.includes("الاسم") || l.includes("👤")) || lines[0] || "اسم غير معروف";
-                    let name = nameLine.replace(/الاسم|:|📍|👤|⚠️|مكرر/g, '').trim();
-
-                    let newDataLine = lines.find(l => l.includes("الجديد")) || "البيانات في الملف الحالي غير متوفرة";
-                    newDataLine = newDataLine.replace(/.*الجديد[:\s]*/, '');
-
-                    let oldDataLine = lines.find(l => l.includes("السابق") || l.includes("مسجل") || l.includes("القديم")) || "البيانات السابقة غير متوفرة";
-                    oldDataLine = oldDataLine.replace(/.*(السابق|القديم|مسجل)[:\s]*/, '');
-
-                    return `
-                        <div class="report-item" style="border-right: 5px solid #e53e3e; background: #fffcfc; padding: 15px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: right; border-left: 1px solid #eee; border-top: 1px solid #eee;">
-                            <div style="font-weight: bold; color: #2d3748; font-size: 18px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                                👤 <span style="color: #c53030;">${name}</span>
-                            </div>
-                            <div style="background: #f0fff4; border: 1px solid #c6f6d5; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 13px;">
-                                <span style="color: #2f855a; font-weight: bold;">🟢 البيانات في الملف الجديد:</span> 
-                                <div style="margin-top: 5px; color: #276749; line-height: 1.6;">${newDataLine}</div>
-                            </div>
-                            <div style="background: #fff5f5; border: 1px solid #fed7d7; padding: 12px; border-radius: 8px; font-size: 13px;">
-                                <span style="color: #c53030; font-weight: bold;">🔴 البيانات المسجلة سابقاً:</span>
-                                <div style="margin-top: 5px; color: #9b2c2c; line-height: 1.6;">${oldDataLine}</div>
-                            </div>
-                        </div>`;
-                }).join('');
-                
-                window.tempUpload = { file, password, churchName, count, levels, desc };
-                openModal(`
-                    <h3 style="color:#e53e3e; margin-top:0; text-align:center; font-weight: 800;">🚨 مراجعة التكرار (قاعدة البيانات)</h3>
-                    <p style="text-align:center; font-size:14px; color:#4a5568; margin-bottom: 20px;">الأسماء التالية مسجلة مسبقاً في قاعدة البيانات:</p>
-                    <div style="max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #edf2f7; border-radius: 15px; background: #f7fafc;">
-                        ${report}
+                    <div class="bg-green-50 border border-green-200 p-2 mb-2 rounded">
+                        <span class="font-bold text-green-800">🟢 البيانات في الصف (رقم ${dup.currentRow}):</span>
+                        <div class="mt-1 text-green-800">${dup.currentInfo}</div>
                     </div>
-                    <div style="margin-top:25px; text-align:center;">
-                        <p style="font-weight:bold; color: #2d3748; margin-bottom:15px;">هل تريد الاستمرار في الرفع رغم وجود التكرار؟</p>
-                        <div class="modal-footer" style="display:flex; gap:12px; justify-content: center;">
-                            <button onclick="confirmIgnore()" style="background: #e53e3e; flex:1; padding: 12px; font-weight: bold; border-radius: 8px; color:white; border:none; cursor:pointer;">نعم، ارفع التكرار</button>
-                            <button onclick="closeModal()" style="background: #718096; flex:1; padding: 12px; font-weight: bold; border-radius: 8px; color:white; border:none; cursor:pointer;">إلغاء</button>
-                        </div>
+                    <div class="bg-red-50 border border-red-200 p-2 rounded">
+                        <span class="font-bold text-red-800">🔴 البيانات المكررة في صف (رقم ${dup.prevRow}):</span>
+                        <div class="mt-1 text-red-800">${dup.prevInfo}</div>
                     </div>
-                `);
-            }
-            else { 
-                if(btn) btn.disabled = false;
-                showMessage("❌ " + data.message, "error"); 
-            }
-        })
-        .catch(err => { if(btn) btn.disabled = false; showMessage("❌ خطأ اتصال: " + err, "error"); });
-    };
-    
-    if (file instanceof File) {
-        reader.readAsDataURL(file);
-    } else if (window.tempUpload && window.tempUpload.file instanceof File) {
-        let originalFile = window.tempUpload.file;
-        let originalReader = new FileReader();
-        originalReader.onload = function(e) {
-             let base64 = e.target.result.split(',')[1];
-             fetch(WEB_APP_URL, {
-                method: 'POST',
-                body: JSON.stringify({ 
-                    fileName: originalFile.name, fileData: base64, church: churchName, password: password, 
-                    count: count, levels: levels, description: desc, ignoreDuplicate: true 
+                </div>
+            `).join('');
+
+            tempUpload = {file,password,churchName,count,levels,desc};
+
+            openModal(`
+                <h3 class="text-red-800 text-xl font-bold mb-4 text-center">🚨 تكرار داخل ملف الإكسيل</h3>
+                <p class="text-center text-gray-600 mb-4">الأسماء التالية مكررة داخل الشيت. راجع (المرحلة، الميلاد، والمسابقات):</p>
+                <div class="max-h-[400px] overflow-y-auto p-2 border border-gray-200 rounded mb-4">${report}</div>
+                <p class="text-center font-bold text-gray-800 mb-4">هل تريد الاستمرار في الرفع رغم وجود التكرار؟</p>
+                <div class="flex justify-center gap-4">
+                    <button class="bg-red-600 text-white px-4 py-2 rounded hover:opacity-90" onclick="confirmIgnore(false)">نعم، ارفع التكرار</button>
+                    <button class="bg-gray-600 text-white px-4 py-2 rounded hover:opacity-90" onclick="closeModal()">إلغاء</button>
+                </div>
+            `);
+        }
+
+        /* ==================== رفع الملف إلى الخادم ==================== */
+        async function uploadNow(file,password,churchName,count,levels,desc,ignoreInternal=false,ignoreExternal=false){
+         setLoadingState(true);
+            const btn = document.getElementById('uploadBtn');
+            if(btn) btn.disabled = true;
+            showMessage("⏳ جاري رفع ومعالجة البيانات…", "success");
+
+            const hashedPassword = await hashPassword(password);
+            const reader = new FileReader();
+           reader.onload = async e => {
+                const base64 = e.target.result.split(',')[1];
+                const time = Date.now();
+                const nonce = generateNonce();
+                const token = await generateToken(churchName, "upload", time, nonce, hashedPassword);
+               fetch(WEB_APP_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+        action: "upload",
+        church: churchName,
+        password: hashedPassword,
+        fileData: base64,
+        fileName: file.name,
+        count: count,
+        levels: levels,
+        description: desc,
+        ignoreInternal: ignoreInternal,
+        ignoreExternal: ignoreExternal,
+        token: token,
+        time: time,
+        nonce: nonce
+    })
                 })
-            })
-            .then(res => res.json())
-            .then(data => {
+                .then(res => res.json())
+                .then(data => {
+                    setLoadingState(false);
+
+                    if (data.success) {
+                        // 1. إعادة تفعيل الزر وتصفير الحقول
+                        if (btn) btn.disabled = false;
+                        document.getElementById('fileNameDisplay').textContent = "";
+                        document.getElementById('fileInput').value = "";
+
+                        // 2. فتح مودال النجاح (الوظيفة اللي محتاجها)
+                        openModal(`
+                            <div class="text-center">
+                                <div class="flex justify-between items-center border-b pb-2 mb-4">
+                                    <h3 class="text-lg font-bold">✅ تم بنجاح</h3>
+                                    <span class="cursor-pointer text-2xl text-gray-500" onclick="closeModal()">×</span>
+                                </div>
+                                <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">✓</div>
+                                <p class="text-gray-800 font-semibold mb-4">تم رفع البيانات بنجاح</p>
+                                <p class="text-sm text-green-600 mb-4">${data.message || ""}</p>
+                                <button class="bg-blue-600 text-white px-4 py-2 rounded hover:opacity-90 w-full" onclick="closeModal()">حسناً</button>
+                            </div>
+                        `);
+                        fetchMyFiles();
+                  }else if(data.duplicate){
+                 setLoadingState(false); // ✅ هنا
+                        // معالجة تكرار في قاعدة البيانات (نفس المنطق السابق)
+                        const duplicateRows = data.message.split('--------------------------------------').filter(i=>i.trim()!=='');
+                        const report = duplicateRows.map(item=>{
+                            const lines = item.split('\n').map(l=>l.trim()).filter(l=>l!=='');
+                            const nameLine = lines.find(l=>l.includes("الاسم")||l.includes("👤"))||lines[0]||"اسم غير معروف";
+                            const name = nameLine.replace(/📍/g, '').replace(/الاسم:/g, '').replace(/👤/g, '').replace(/⚠️/g, '').replace(/مكرر/g, '').replace(/\[تكرار داخلي بالملف\]/g, '').replace(/\[تكرار خارجي بالسيرفر\]/g, '').trim();
+                            const newLine = lines.find(l=>l.includes("الجديد"))||"";
+                            const oldLine = lines.find(l=>l.includes("السابق")||l.includes("المسجل")||l.includes("القديم"))||"";
+                            return `
+                                <div class="border-r-4 border-red-600 bg-red-50 p-4 mb-4 rounded-lg">
+                                    <div class="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                                        👤 <span class="text-red-600">${sanitize(name)}</span>
+                                    </div>
+                                    <div class="bg-green-50 border border-green-200 p-2 mb-2 rounded">
+                                        <span class="font-bold text-green-800">🟢 البيانات في الملف الجديد:</span>
+                                        <div class="mt-1 text-green-800">${newLine}</div>
+                                    </div>
+                                    <div class="bg-red-50 border border-red-200 p-2 rounded">
+                                        <span class="font-bold text-red-800">🔴 البيانات المسجلة سابقاً:</span>
+                                        <div class="mt-1 text-red-800">${oldLine}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+
+                        tempUpload = {file,password,churchName,count,levels,desc};
+
+                        openModal(`
+                            <h3 class="text-red-800 text-xl font-bold mb-4 text-center">🚨 مراجعة التكرار (قاعدة البيانات)</h3>
+                            <p class="text-center text-gray-600 mb-4">الأسماء التالية مسجلة مسبقاً في قاعدة البيانات:</p>
+                            <div class="max-h-[400px] overflow-y-auto p-2 border border-gray-200 rounded mb-4">${report}</div>
+                            <p class="text-center font-bold text-gray-800 mb-4">هل تريد الاستمرار في الرفع رغم وجود التكرار؟</p>
+                            <div class="flex justify-center gap-4">
+                                <button class="bg-red-600 text-white px-4 py-2 rounded hover:opacity-90" onclick="confirmIgnore(true)">نعم، ارفع التكرار</button>
+                                <button class="bg-gray-600 text-white px-4 py-2 rounded hover:opacity-90" onclick="closeModal()">إلغاء</button>
+                            </div>
+                        `);
+                   }else{
+                   setLoadingState(false); // ✅ فك القفل هنا
+
                 if(btn) btn.disabled = false;
-                if(data.success) { 
-                    closeModal(); 
-                    document.getElementById("fileNameDisplay").innerHTML = "";
-                    document.getElementById("fileInput").value = "";
-                    showMessage("✅ تم الرفع بنجاح!", "success"); 
-                    fetchMyFiles(); 
+               showMessage("❌ "+sanitize(data.message||''), "error");
+}
+                })
+                .catch(err=>{
+                    if(btn) btn.disabled = false;
+                    showMessage("❌ خطأ اتصال: "+err, "error");
+                });
+            };
+            if(file instanceof File){
+                reader.readAsDataURL(file);
+            }else if(tempUpload && tempUpload.file instanceof File){
+                const originalFile = tempUpload.file;
+                const originalReader = new FileReader();
+                originalReader.onload = async e=>{
+                    const base64 = e.target.result.split(',')[1];
+                    const t2 = Date.now(), n2 = generateNonce();
+                    const hp2 = await hashPassword(password);
+                    const tok2 = await generateToken(churchName, "upload", t2, n2, hp2);
+                    fetch(WEB_APP_URL,{
+                        method:'POST',
+                        body:JSON.stringify({
+                            action:"upload",
+                            fileName:originalFile.name,
+                            fileData:base64,
+                            church:churchName,
+                            password:hp2,
+                            count:count,
+                            levels:levels,
+                            description:desc,
+                            ignoreInternal:ignoreInternal,
+                            ignoreExternal:ignoreExternal,
+                            token:tok2,
+                            time:t2,
+                            nonce:n2
+                        })
+                    })
+                    .then(r=>r.json())
+                    .then(data=>{
+                        if(btn) btn.disabled = false;
+                        setLoadingState(false);
+                        if(data.success){
+                            closeModal();
+                            document.getElementById('fileNameDisplay').textContent="";
+                            document.getElementById('fileInput').value="";
+                            showMessage("✅ تم الرفع بنجاح!", "success");
+                            fetchMyFiles();
+                        }else{
+                            showMessage("❌ "+sanitize(data.message||''), "error");
+                        }
+                    })
+                    .catch(err=>showMessage("❌ خطأ اتصال: "+err, "error"));
+                };
+                originalReader.readAsDataURL(originalFile);
+            }
+        }
+
+        function confirmIgnore(ignoreExternal=false){
+            const d = tempUpload;
+            tempUpload = null;
+            closeModal();
+            uploadNow(d.file,d.password,d.churchName,d.count,d.levels,d.desc,true,ignoreExternal);
+        }
+
+        /* ==================== جلب السجل والإحصائيات ==================== */
+        let cachedFiles = [];
+        async function fetchMyFiles(){
+            const church = sanitize(document.getElementById('churchName').value);
+            const pass = document.getElementById('password').value;
+            if(!church || !churches.includes(church) || !pass){
+                showMessage("⚠️ أدخل اسم الكنيسة والباسورد لعرض السجل.", "error", true);
+                return;
+            }
+            setLoadingState(true);
+            showMessage("⏳ جاري التحميل…", "success");
+            showProgress(30);
+            const hashedPass = await hashPassword(pass);
+            const time = Date.now(), nonce = generateNonce();
+            const token = await generateToken(church, "fetch", time, nonce, hashedPass);
+            fetch(WEB_APP_URL,{
+                method:'POST',
+                body:JSON.stringify({action:"fetch",church:church,password:hashedPass,time:time,nonce:nonce,token:token})
+            })
+            .then(r=>r.json())
+            .then(data=>{
+                if(data.success){
+                    cachedFiles = data.files||[];
+                    let html = "", total=0, stageStats={};
+                    fixedStages.forEach(s=>stageStats[s]=0);
+                    if(cachedFiles.length === 0){
+                        html = `<tr><td colspan="4" class="p-4 text-center text-gray-400">📂 لا توجد ملفات مرفوعة بعد.</td></tr>`;
+                    }
+                    cachedFiles.forEach(f=>{
+                        const safeName = sanitize(f.name||'');
+                        const safeId   = sanitize(f.id||'');
+                        const safeCount= parseInt(f.count||0);
+                        const safeDate = sanitize(f.date||'');
+                        html+=`<tr>
+                            <td class="p-3 border-b border-gray-200 text-right">${safeName}</td>
+                            <td class="p-3 border-b border-gray-200 text-right"><b>${safeCount}</b></td>
+                            <td class="p-3 border-b border-gray-200 text-right">${safeDate}</td>
+                            <td class="p-3 border-b border-gray-200 flex items-center justify-center gap-3">
+    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-blue-700 transition shadow-sm"
+            onclick="downloadReportSecure('${safeId}', '${safeName}')">
+        عرض التقرير
+    </button>
+    <button class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-red-700 transition shadow-sm"
+            onclick="showDel('${safeId}','${safeName}')">
+        حذف
+    </button>
+</td>
+                        </tr>`;
+                        total+=safeCount;
+                        if(f.levels){
+                            Object.keys(f.levels).forEach(k=>{
+                                fixedStages.forEach(fs=>{if(k.includes(fs)) stageStats[fs]+=parseInt(f.levels[k]);});
+                            });
+                        }
+                    });
+                    document.getElementById('filesTableBody').innerHTML=html;
+                    document.getElementById('totalChurchCount').textContent=total;
+
+                    let statsHtml="";
+                    fixedStages.forEach(s=>{
+                        const c=stageStats[s];
+                        statsHtml+=`<div class="stat-card p-2 border border-gray-200 rounded ${c>0?'has-count':'opacity-50'}">${sanitize(s)}: ${c}</div>`;
+                    });
+                    document.getElementById('statsGrid').innerHTML=statsHtml;
+                    document.getElementById('statsCard').classList.remove('hidden');
+                    document.getElementById('historySection').classList.remove('hidden');
+                    document.getElementById('searchBox').classList.remove('hidden');
+                    document.getElementById('messageBox').classList.add('hidden');
+                    showProgress(100);
+                }else{
+                    showMessage("❌ "+sanitize(data.message||''), "error");
                 }
-                else { showMessage("❌ " + data.message, "error"); }
+                setLoadingState(false);
+            })
+            .catch(err => {
+                showMessage("❌ خطأ اتصال: "+err, "error");
+                setLoadingState(false);
             });
-        };
-        originalReader.readAsDataURL(originalFile);
-    }
-}
+        }
 
-function confirmIgnore() {
-    const d = window.tempUpload;
-    closeModal();
-    uploadNow(d.file, d.password, d.churchName, d.count, d.levels, d.desc, true);
-}
+        /* تم استبدال دالة downloadFile بدالة downloadReportSecure الآمنة الموجودة بالأعلى */
 
-let cachedFiles = []; 
-function fetchMyFiles() {
-    let church = document.getElementById("churchName").value;
-    let pass = document.getElementById("password").value;
-    let fileInput = document.getElementById("fileInput");
+        /* ==================== بحث داخل السجل ==================== */
+        function searchInNames(){
+            const n = normalizeName(document.getElementById('searchNameInput').value);
+            const s = document.getElementById('searchStageInput').value;
+            const resDiv = document.getElementById('searchResults');
+            if(!n && !s){ resDiv.innerHTML=""; return; }
 
-    if(fileInput) fileInput.classList.remove("input-error");
-
-    if(!church || !churches.includes(church) || !pass) { 
-        showMessage("⚠️ أدخل اسم الكنيسة والباسورد لعرض السجل.", "error", true); 
-        return; 
-    }
-    
-    showMessage("⏳ جاري التحميل...", "success");
-    fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: "fetch", church: church, password: pass }) })
-    .then(res => res.json())
-    .then(data => {
-        if(data.success) {
-            cachedFiles = data.files || []; 
-            let html = ""; let total = 0; let stageStats = {};
-            fixedStages.forEach(s => stageStats[s] = 0);
-
-            cachedFiles.forEach(f => {
-                html += `<tr>
-                    <td>${f.name}</td>
-                    <td><b>${f.count}</b></td>
-                    <td>${f.date}</td>
-                    <td>
-                        <button class="btn-download" onclick="downloadFile('${f.id}')"> عرض الملف </button>
-                        <button class="btn-delete" onclick="showDel('${f.id}', '${f.name}')">حذف</button>
-                    </td>
-                </tr>`;
-                total += parseInt(f.count || 0);
-                if(f.levels) {
-                    Object.keys(f.levels).forEach(k => {
-                        fixedStages.forEach(fs => { if(k.includes(fs)) stageStats[fs] += parseInt(f.levels[k]); });
+            let html="", found=false;
+            cachedFiles.forEach(f=>{
+                if(f.description){
+                    f.description.split("\n").forEach(line=>{
+                        if(!line.trim()) return;
+                        const normalizedLine = normalizeName(line);
+                        if((!n || normalizedLine.includes(n)) && (!s || line.includes(s))){
+                            found=true;
+                            const parts = line.split("*");
+                            html+=`<div class="result-card border border-gray-200 rounded p-3 mb-3">
+                                👤 <b>${sanitize(parts[0]||'')}</b><br>
+                                <span class="text-green-700 text-sm">🏆 ${sanitize(parts[1]||'')}</span><br>
+                                <span class="text-gray-600 text-xs">📅 ${sanitize(parts[2]||'')}</span><br>
+                                <small class="text-gray-500 block mt-1 border-t border-dashed pt-1">📁 ${sanitize(f.name||'')}</small>
+                            </div>`;
+                        }
                     });
                 }
             });
-
-            document.getElementById("filesTableBody").innerHTML = html;
-            document.getElementById("totalChurchCount").innerText = total;
-            
-            let statsHtml = "";
-            fixedStages.forEach(s => {
-                let c = stageStats[s];
-                statsHtml += `<div class="stat-item" style="${c > 0 ? 'border-color:#3182ce; background:#fff;' : 'opacity:0.5;'}">${s}: ${c}</div>`;
-            });
-            document.getElementById("statsGrid").innerHTML = statsHtml;
-            document.getElementById("statsCard").style.display = "block";
-            document.getElementById("historySection").style.display = "block";
-            document.getElementById("searchBox").style.display = "block"; 
-            document.getElementById("messageBox").style.display = "none";
-
-            document.getElementById("searchNameInput").oninput = searchInNames;
-            document.getElementById("searchStageInput").onchange = searchInNames;
-
-        } else showMessage("❌ " + data.message, "error");
-    })
-    .catch(err => showMessage("❌ خطأ اتصال: " + err, "error"));
-}
-
-function downloadFile(fileId) {
-    if (!fileId) {
-        showMessage("❌ عذراً، لا يوجد معرف للملف.", "error");
-        return;
-    }
-    const downloadUrl = "https://drive.google.com/uc?export=download&id=" + fileId;
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.setAttribute('download', 'Mahragan_Report'); 
-    link.download = "Mahragan_Report"; 
-    link.rel = "noopener";
-    link.target = '_self'; 
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => { document.body.removeChild(link); }, 100);
-}
-
-function searchInNames() {
-    let n = normalizeName(document.getElementById("searchNameInput").value);
-    let s = document.getElementById("searchStageInput").value;
-    let resDiv = document.getElementById("searchResults");
-    if (!n && !s) { resDiv.innerHTML = ""; return; }
-
-    let html = ""; let found = false;
-    cachedFiles.forEach(file => {
-        if (file.description) {
-            file.description.split("\n").forEach(line => {
-                if (line.trim() === "") return;
-                let normalizedLine = normalizeName(line);
-                if ((!n || normalizedLine.includes(n)) && (!s || line.includes(s))) {
-                    found = true;
-                    let p = line.split("*");
-                    html += `<div class="result-card" style="border-right: 4px solid #3182ce;">
-                                👤 <b>${p[0]}</b><br>
-                                <span style="color:#2c5282; font-size: 0.9em;">🏆 ${p[1] || ""}</span><br>
-                                <span style="color:#718096; font-size: 0.85em;">📅 ${p[2] || ""}</span><br>
-                                <small style="color:#a0aec0; display:block; margin-top:5px; border-top:1px dashed #edf2f7;">📁 ${file.name}</small>
-                             </div>`;
-                }
-            });
+            resDiv.innerHTML = found ? html : "<p class='text-red-600 text-center text-sm'>🚫 لا توجد نتائج مطابقة.</p>";
         }
-    });
-    resDiv.innerHTML = found ? html : "<p style='color:#e53e3e; font-size:12px; text-align:center;'>🚫 لا توجد نتائج مطابقة.</p>";
-}
 
-function showDel(id, name) {
-    openModal(`
-        <h3 style="color:#e53e3e;">⚠️ تأكيد حذف ملف</h3>
-        <p>هل أنت متأكد من حذف الملف <b>${name}</b> نهائياً؟</p>
-        <div class="modal-footer">
-            <button onclick="execDel('${id}')" style="background:#e53e3e; padding:10px 20px; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">تأكيد الحذف</button>
-            <button onclick="closeModal()" style="background:#718096; padding:10px 20px; color:white; border:none; border-radius:5px; cursor:pointer;">إلغاء</button>
-        </div>
-    `);
-}
-
-function execDel(id) {
+        /* ==================== حذف ملف ==================== */
+        function showDel(id,name){
+            openModal(`
+                <h3 class="text-red-800 text-xl font-bold mb-4 text-center">⚠️ تأكيد حذف ملف</h3>
+                <p class="text-center mb-4">هل أنت متأكد من حذف الملف <b>${sanitize(name)}</b> نهائياً؟</p>
+                <div class="flex justify-center gap-4">
+                    <button class="bg-red-600 text-white px-4 py-2 rounded hover:opacity-90" onclick="execDel('${sanitize(id)}')">تأكيد الحذف</button>
+                    <button class="bg-gray-600 text-white px-4 py-2 rounded hover:opacity-90" onclick="closeModal()">إلغاء</button>
+                </div>
+            `);
+        }
+     async function execDel(id){
     closeModal();
-    let church = document.getElementById("churchName").value;
-    let pass = document.getElementById("password").value;
-    showMessage("⏳ جاري الحذف...", "success");
-    fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: "delete", fileId: id, church: church, password: pass }) })
-    .then(res => res.json())
-    .then(data => { if(data.success) fetchMyFiles(); else showMessage("❌ " + data.message, "error"); })
-    .catch(err => showMessage("❌ خطأ اتصال: " + err, "error"));
-};
-</script>
+
+    const church = sanitize(document.getElementById('churchName').value);
+    const pass = document.getElementById('password').value; // لا نعقّم قبل التشفير
+
+    // 🔐 تشفير الباسورد
+    const hashedPass = await hashPassword(pass);
+
+    // 🔐 توليد بيانات الأمان
+    const time = Date.now();
+    const nonce = generateNonce();
+    const token = await generateToken(church, "delete", time, nonce, hashedPass);
+
+    setLoadingState(true);
+    showMessage("⏳ جاري الحذف…", "success");
+
+    fetch(WEB_APP_URL,{
+        method:'POST',
+      body: JSON.stringify({
+    action: "delete",
+    fileId: id,
+    church: church,
+    password: hashedPass,
+    token: token,
+    time: time,
+    nonce: nonce
+})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.success){
+            fetchMyFiles();
+        } else {
+            showMessage("❌ " + sanitize(data.message||''), "error");
+        }
+        setLoadingState(false);
+    })
+    .catch(err => {
+        showMessage("❌ خطأ اتصال: " + err, "error");
+        setLoadingState(false);
+    });
+}
+    </script>
 </body>
 </html>
