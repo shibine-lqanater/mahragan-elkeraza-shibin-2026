@@ -37,7 +37,11 @@
         }
         .shake-error {
             animation: shake 0.3s ease-in-out;
-            border: 2px solid #ef4444 !important;
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+        }
+        .error-border {
+            border-color: #ef4444 !important;
             background-color: #fef2f2 !important;
         }
         #filesTable tbody tr { transition: background-color 0.15s ease; }
@@ -187,14 +191,45 @@ function showProgress(pct){
 }
 
 async function downloadReportSecure(fileId, fileName) {
+    ['churchName', 'password', 'dropZone'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.classList.remove('error-border');
+    });
+
     const churchInput = document.getElementById('churchName');
     const passwordInput = document.getElementById('password');
     const church = churchInput ? sanitize(churchInput.value) : "";
-    const pass = passwordInput ? passwordInput.value : "";
-    if(!church || !pass) {
-        showMessage("⚠️ أدخل اسم الكنيسة والباسورد لتحميل التقرير.", "error", true);
+    const pass = passwordInput ? passwordInput.value.trim() : "";
+
+    let hasError = false;
+    let errorsList = [];
+
+    if(!church || !churches.includes(church)) {
+        if(churchInput) {
+            churchInput.classList.add('shake-error', 'error-border');
+            setTimeout(() => churchInput.classList.remove('shake-error'), 500);
+            churchInput.oninput = () => churchInput.classList.remove('error-border');
+        }
+        hasError = true;
+        if(!church) errorsList.push("اختيار الكنيسة");
+        else errorsList.push("اختيار كنيسة صحيحة من القائمة");
+    }
+    if(!pass || pass.length < 4) {
+        if(passwordInput) {
+            passwordInput.classList.add('shake-error', 'error-border');
+            setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
+            passwordInput.oninput = () => passwordInput.classList.remove('error-border');
+        }
+        hasError = true;
+        if(!pass) errorsList.push("إدخال كلمة المرور");
+        else errorsList.push("أن تكون كلمة المرور 4 أحرف كحد أدنى");
+    }
+
+    if(hasError) {
+        showMessage("⚠️ لتحميل التقرير، يرجى التأكد من: " + errorsList.join("، و") + ".", "error");
         return;
     }
+
     const hashedPass = await hashPassword(pass);
     const time = Date.now();
     const nonce = generateNonce();
@@ -420,7 +455,7 @@ function setLoadingState(isLoading){
         }
 
         /* ==================== رسائل للمستخدم ==================== */
-        function showMessage(text, type, ignoreFileCheck=false){
+        function showMessage(text, type){
             const box = document.getElementById('messageBox');
             box.className = "mt-4 p-4 rounded-xl";
             if(type==="error") box.classList.add('bg-red-100','border','border-red-400','text-red-700');
@@ -428,18 +463,6 @@ function setLoadingState(isLoading){
             else box.classList.add('bg-gray-100','border','border-gray-300','text-gray-800');
             box.innerHTML = text; // النص معقّم من المصدر قبل الاستدعاء
             box.classList.remove('hidden');
-            if(type==="error"){
-                const ids = ["churchName","password"];
-                if(!ignoreFileCheck) ids.push("fileInput");
-                ids.forEach(id=>{
-                    const el = document.getElementById(id);
-                    if(el && (!el.value || (id==="churchName" && !churches.includes(el.value)))){
-                        el.classList.add('border-red-500');
-                        el.oninput = ()=>{ el.classList.remove('border-red-500'); };
-                        el.onchange = el.oninput;
-                    }
-                });
-            }
         }
 
         /* ==================== استخراج معلومات الصفوف ==================== */
@@ -458,34 +481,49 @@ function setLoadingState(isLoading){
 
         /* ==================== التحقق من صحة الملف قبل الإرسال ==================== */
        function validateFile(){
-            document.querySelectorAll('.border-red-500').forEach(el=>el.classList.remove('border-red-500'));
+            ['churchName', 'password', 'dropZone'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.classList.remove('error-border');
+            });
 
             const churchInput = document.getElementById('churchName');
             const passwordInput = document.getElementById('password');
             const fileInput = document.getElementById('fileInput');
-            const dropZone = document.getElementById('dropZone'); // نحتاجه للهزة
+            const dropZone = document.getElementById('dropZone'); // نحتاجه للهزة واللون الأحمر
 
             const church = sanitize(churchInput.value);
             const password = passwordInput.value.trim(); // لا نعقّم كلمة المرور لأنها ستُشفّر بـ SHA-256
             const file = fileInput.files[0];
 
-            if(!church || !churches.includes(church) || !password || password.length < 4 || !file){
-                if(!church || !churches.includes(church)) {
-                    churchInput.classList.add('shake-error');
-                    setTimeout(() => churchInput.classList.remove('shake-error'), 500);
-                }
-                if(!password || password.length < 4) {
-                    passwordInput.classList.add('shake-error');
-                    setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
-                }
-                if(!file) {
-                    dropZone.classList.add('shake-error');
-                    setTimeout(() => dropZone.classList.remove('shake-error'), 500);
-                }
-                const msg = !password || password.length < 4
-                    ? "⚠️ كلمة المرور يجب أن تكون على الأقل 4 أحرف."
-                    : "⚠️ تأكد من اختيار الكنيسة وإدخال كلمة المرور واختيار الملف.";
-                showMessage(msg, "error");
+            let hasError = false;
+            let errorsList = [];
+
+            if(!church || !churches.includes(church)){
+                churchInput.classList.add('shake-error', 'error-border');
+                setTimeout(() => churchInput.classList.remove('shake-error'), 500);
+                churchInput.oninput = () => churchInput.classList.remove('error-border');
+                hasError = true;
+                if(!church) errorsList.push("اختيار الكنيسة");
+                else errorsList.push("اختيار كنيسة صحيحة من القائمة");
+            }
+            if(!password || password.length < 4){
+                passwordInput.classList.add('shake-error', 'error-border');
+                setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
+                passwordInput.oninput = () => passwordInput.classList.remove('error-border');
+                hasError = true;
+                if(!password) errorsList.push("إدخال كلمة المرور");
+                else errorsList.push("أن تكون كلمة المرور 4 أحرف كحد أدنى");
+            }
+            if(!file){
+                dropZone.classList.add('shake-error', 'error-border');
+                setTimeout(() => dropZone.classList.remove('shake-error'), 500);
+                fileInput.addEventListener('change', () => dropZone.classList.remove('error-border'), {once: true});
+                hasError = true;
+                errorsList.push("إرفاق ملف الإكسيل");
+            }
+
+            if(hasError){
+                showMessage("⚠️ يرجى التأكد من: " + errorsList.join("، و") + ".", "error");
                 return;
             }
 
@@ -820,10 +858,38 @@ reader.readAsArrayBuffer(file);
         /* ==================== جلب السجل والإحصائيات ==================== */
         let cachedFiles = [];
         async function fetchMyFiles(){
-            const church = sanitize(document.getElementById('churchName').value);
-            const pass = document.getElementById('password').value;
-            if(!church || !churches.includes(church) || !pass){
-                showMessage("⚠️ أدخل اسم الكنيسة والباسورد لعرض السجل.", "error", true);
+            ['churchName', 'password', 'dropZone'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.classList.remove('error-border');
+            });
+
+            const churchInput = document.getElementById('churchName');
+            const passwordInput = document.getElementById('password');
+            const church = sanitize(churchInput.value);
+            const pass = passwordInput.value.trim();
+
+            let hasError = false;
+            let errorsList = [];
+
+            if(!church || !churches.includes(church)){
+                churchInput.classList.add('shake-error', 'error-border');
+                setTimeout(() => churchInput.classList.remove('shake-error'), 500);
+                churchInput.oninput = () => churchInput.classList.remove('error-border');
+                hasError = true;
+                if(!church) errorsList.push("اختيار الكنيسة");
+                else errorsList.push("اختيار كنيسة صحيحة من القائمة");
+            }
+            if(!pass || pass.length < 4){
+                passwordInput.classList.add('shake-error', 'error-border');
+                setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
+                passwordInput.oninput = () => passwordInput.classList.remove('error-border');
+                hasError = true;
+                if(!pass) errorsList.push("إدخال كلمة المرور");
+                else errorsList.push("أن تكون كلمة المرور 4 أحرف كحد أدنى");
+            }
+
+            if(hasError){
+                showMessage("⚠️ لعرض السجل، يرجى التأكد من: " + errorsList.join("، و") + ".", "error");
                 return;
             }
             setLoadingState(true);
