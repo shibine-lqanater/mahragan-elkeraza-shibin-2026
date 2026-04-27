@@ -213,7 +213,7 @@
     </footer>
 
     <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvpgZ4gcWFWTwFz5v8yR4cke4_T2Hy58dYmFn_xMHHeVu-7fsAyVq5ggRTPxbU1p7n4g/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzd9pZjIMWDXlQZ2r5Mx_Rbzoqm_XJC_ZD19LrDHcnzhouKz3idzxsDBm-WbHX6BXeitw/exec";
 
 // ==================== دوال الأمان ====================
 function generateNonce(){ return Math.random().toString(36).substring(2, 10); }
@@ -282,8 +282,7 @@ async function downloadReportSecure(fileId, fileName) {
     const nonce = generateNonce();
     const token = await generateToken(church, "download", time, nonce, hashedPass);
     
-    setLoadingState(true);
-    showStatus('loading', "جاري تجهيز الملف للتحميل…");
+    setLoadingState(true, "جاري تجهيز الملف للتحميل…", "جاري التحميل");
 
     fetch(WEB_APP_URL, {
         method: 'POST',
@@ -316,9 +315,9 @@ async function downloadReportSecure(fileId, fileName) {
             a.click();
             window.URL.revokeObjectURL(url);
             a.remove();
-            showMessage("✅ تم تحميل الملف بنجاح.", "success");
+            showStatus('success', "تم تحميل الملف بنجاح.", "اكتمل التحميل");
         } else {
-            showMessage("❌ " + sanitize(data.message||''), "error");
+            showStatus('error', sanitize(data.message||''), "فشل التحميل");
         }
     })
     .catch(err => {
@@ -394,12 +393,12 @@ async function hashPassword(password) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function setLoadingState(isLoading){
+function setLoadingState(isLoading, message, title){
     const uploadBtn = document.getElementById('uploadBtn');
     const statsBtn = document.getElementById('showStatsBtn');
 
     if(isLoading){
-        showStatus('loading', 'جاري العمل الآن...');
+        showStatus('loading', message || 'جاري العمل الآن...', title);
         if(uploadBtn) {
             uploadBtn.disabled = true;
             uploadBtn.classList.add('opacity-50','cursor-not-allowed');
@@ -429,7 +428,7 @@ function setLoadingState(isLoading){
     }
 }
 
-function showStatus(type, message) {
+function showStatus(type, message, customTitle) {
     const overlay = document.getElementById('statusModalOverlay');
     const iconContainer = document.getElementById('statusIconContainer');
     const title = document.getElementById('statusTitle');
@@ -449,18 +448,18 @@ function showStatus(type, message) {
     if (type === 'loading') {
         overlay.style.cursor = 'wait';
         iconContainer.innerHTML = '<div class="loader-spinner"></div>';
-        title.textContent = 'لحظة من فضلك';
+        title.textContent = customTitle || 'لحظة من فضلك';
         title.classList.add('text-blue-800');
         msg.textContent = message || 'جاري التحميل...';
     } else if (type === 'success') {
         iconContainer.innerHTML = '<div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-4xl">✓</div>';
-        title.textContent = 'تم بنجاح';
+        title.textContent = customTitle || 'تم بنجاح';
         title.classList.add('text-green-700');
         msg.textContent = message;
         btn.classList.remove('hidden');
     } else if (type === 'error') {
         iconContainer.innerHTML = '<div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-4xl">✕</div>';
-        title.textContent = 'عذراً';
+        title.textContent = customTitle || 'عذراً';
         title.classList.add('text-red-700');
         msg.textContent = message;
         btn.classList.remove('hidden');
@@ -535,20 +534,7 @@ function closeStatusModal() {
             if(e.target === document.getElementById('modalOverlay')) closeModal();
         }
 
-        /* ==================== رسائل للمستخدم ==================== */
-        function showMessage(text, type){
-            // تحويل الرسائل العادية لتظهر في المودال الجديد
-            const cleanText = text.replace(/<br>/g, '\n').replace(/<\/?[^>]+(>|$)/g, ""); // تنظيف من التاجات لو وجدت
-            if(type === 'error' || type === 'success') {
-                showStatus(type, cleanText);
-            } else {
-                const box = document.getElementById('messageBox');
-                box.className = "mt-4 p-4 rounded-xl";
-                box.classList.add('bg-gray-100','border','border-gray-300','text-gray-800');
-                box.innerHTML = text;
-                box.classList.remove('hidden');
-            }
-        }
+
 
         /* ==================== استخراج معلومات الصفوف ==================== */
       function getRowInfo(row){
@@ -608,7 +594,7 @@ function closeStatusModal() {
             }
 
             if(hasError){
-                showMessage("⚠️ يرجى التأكد من: " + errorsList.join("، و") + ".", "error");
+                showStatus('error', "يرجى التأكد من: " + errorsList.join("، و") + ".", "خطأ في البيانات");
                 return;
             }
 
@@ -624,7 +610,7 @@ function closeStatusModal() {
             if(!validExt || !validChars){
                 dropZone.classList.add('shake-error');
                 setTimeout(() => dropZone.classList.remove('shake-error'), 500);
-                showMessage("❌ اسم الملف غير صالح. يرجى التأكد من أن الاسم لا يحتوي على رموز ممنوعة (مثل / \ : * ? < > |) وينتهي بـ .xlsx أو .xls", "error");
+                showStatus('error', "اسم الملف غير صالح. يرجى التأكد من أن الاسم لا يحتوي على رموز ممنوعة (مثل / \\ : * ? < > |) وينتهي بـ .xlsx أو .xls", "اسم ملف غير صالح");
                 return;
             }
             const validType = allowedTypes.includes(file.type) || file.type === '';
@@ -632,7 +618,7 @@ function closeStatusModal() {
                 dropZone.classList.add('shake-error');
                 setTimeout(() => dropZone.classList.remove('shake-error'), 500);
 
-                showMessage("❌ نوع أو حجم الملف غير مقبول. يُسمح فقط بملفات XLSX/XLS حتى 5 مB.", "error");
+                showStatus('error', "نوع أو حجم الملف غير مقبول. يُسمح فقط بملفات XLSX/XLS حتى 5 مB.", "ملف غير مقبول");
                 return;
             }
 
@@ -652,7 +638,7 @@ reader.onload = function(e) {
         }
     } catch (err) {
         console.error("حدث خطأ تقني:", err);
-        showMessage("❌ فشل في معالجة الملف: " + sanitize(err.message||''), "error");
+        showStatus('error', "فشل في معالجة الملف: " + sanitize(err.message||''), "خطأ فني");
     }
 };
 reader.readAsArrayBuffer(file);
@@ -743,7 +729,7 @@ reader.readAsArrayBuffer(file);
             }
 
             if(allErrors.length){
-                showMessage("❌ أخطاء في البيانات:<br>" + allErrors.join("<br>"), "error");
+                showStatus('error', "أخطاء في البيانات:<br>" + allErrors.join("<br>"), "أخطاء في الشيت");
                 return;
             }
 
@@ -789,10 +775,9 @@ reader.readAsArrayBuffer(file);
 
         /* ==================== رفع الملف إلى الخادم ==================== */
         async function uploadNow(file,password,churchName,count,levels,desc,ignoreInternal=false,ignoreExternal=false){
-         setLoadingState(true);
+         setLoadingState(true, "جاري رفع ومعالجة البيانات…", "جاري الرفع");
             const btn = document.getElementById('uploadBtn');
             if(btn) btn.disabled = true;
-            showStatus('loading', "جاري رفع ومعالجة البيانات…");
 
             const hashedPassword = await hashPassword(password);
             const reader = new FileReader();
@@ -830,7 +815,7 @@ reader.readAsArrayBuffer(file);
                         document.getElementById('fileInput').value = "";
 
                         // 2. فتح مودال النجاح
-                        showStatus('success', data.message || "تم رفع البيانات بنجاح");
+                        showStatus('success', data.message || "تم رفع البيانات بنجاح", "تم الرفع");
                         fetchMyFiles();
                   }else if(data.duplicate){
                  setLoadingState(false); // ✅ هنا
@@ -875,7 +860,7 @@ reader.readAsArrayBuffer(file);
                    setLoadingState(false); // ✅ فك القفل هنا
 
                 if(btn) btn.disabled = false;
-               showMessage("❌ "+sanitize(data.message||''), "error");
+               showStatus('error', sanitize(data.message||''), "فشل الرفع");
 }
                 })
                 .catch(err=>{
@@ -919,13 +904,13 @@ reader.readAsArrayBuffer(file);
                             closeModal();
                             document.getElementById('fileNameDisplay').textContent="";
                             document.getElementById('fileInput').value="";
-                            showMessage("✅ تم الرفع بنجاح!", "success");
+                            showStatus('success', "تم الرفع بنجاح!", "تم الرفع");
                             fetchMyFiles();
                         }else{
-                            showMessage("❌ "+sanitize(data.message||''), "error");
+                            showStatus('error', sanitize(data.message||''), "فشل الرفع");
                         }
                     })
-                    .catch(err=>showMessage("❌ خطأ اتصال: "+err, "error"));
+                    .catch(err=>showStatus('error', "خطأ اتصال: "+err, "فشل الاتصال"));
                 };
                 originalReader.readAsDataURL(originalFile);
             }
@@ -972,11 +957,10 @@ reader.readAsArrayBuffer(file);
             }
 
             if(hasError){
-                showMessage("⚠️ لعرض السجل، يرجى التأكد من: " + errorsList.join("، و") + ".", "error");
+                showStatus('error', "لعرض السجل، يرجى التأكد من: " + errorsList.join("، و") + ".", "بيانات ناقصة");
                 return;
             }
-            setLoadingState(true);
-            showStatus('loading', "جاري التحميل…");
+            setLoadingState(true, "جاري جلب البيانات وتحديث السجل…", "جاري التحديث");
             showProgress(30);
             const hashedPass = await hashPassword(pass);
             const time = Date.now(), nonce = generateNonce();
@@ -1035,14 +1019,14 @@ reader.readAsArrayBuffer(file);
                     document.getElementById('searchBox').classList.remove('hidden');
                     document.getElementById('messageBox').classList.add('hidden');
                     showProgress(100);
-                    showStatus('success', 'تم جلب البيانات وتحديث السجل بنجاح.');
+                    showStatus('success', 'تم جلب البيانات وتحديث السجل بنجاح.', "تم التحديث");
                 }else{
                     showStatus('error', sanitize(data.message||'خطأ في جلب البيانات'));
                 }
                 setLoadingState(false);
             })
             .catch(err => {
-                showMessage("❌ خطأ اتصال: "+err, "error");
+                showStatus('error', "خطأ اتصال: " + err, "فشل التحديث");
                 setLoadingState(false);
             });
         }
@@ -1103,8 +1087,7 @@ reader.readAsArrayBuffer(file);
     const nonce = generateNonce();
     const token = await generateToken(church, "delete", time, nonce, hashedPass);
 
-    setLoadingState(true);
-    showStatus('loading', "جاري الحذف…");
+    setLoadingState(true, "جاري حذف الملف نهائياً…", "جاري الحذف");
 
     fetch(WEB_APP_URL,{
         method:'POST',
@@ -1121,14 +1104,15 @@ reader.readAsArrayBuffer(file);
     .then(r => r.json())
     .then(data => {
         if(data.success){
+            showStatus('success', "تم حذف الملف بنجاح.", "تم الحذف");
             fetchMyFiles();
         } else {
-            showMessage("❌ " + sanitize(data.message||''), "error");
+            showStatus('error', sanitize(data.message||''), "فشل الحذف");
         }
         setLoadingState(false);
     })
     .catch(err => {
-        showMessage("❌ خطأ اتصال: " + err, "error");
+        showStatus('error', "خطأ اتصال: " + err, "فشل الاتصال");
         setLoadingState(false);
     });
 }
