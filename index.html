@@ -49,6 +49,41 @@
         .stat-card { transition: transform 0.15s, box-shadow 0.15s; cursor: default; }
         .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .stat-card.has-count { background: linear-gradient(135deg,#eff6ff,#dbeafe); border: 1px solid #3b82f6; }
+
+        /* ==================== Status Modal & Loader ==================== */
+        .loader-spinner {
+            border: 4px solid rgba(59, 130, 246, 0.1);
+            border-left-color: #1d4ed8;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        #statusModalOverlay {
+            transition: opacity 0.3s ease;
+        }
+        #statusModalCard {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+        }
+        #statusModalOverlay.hidden {
+            display: none;
+            opacity: 0;
+        }
+        #statusModalOverlay.flex {
+            display: flex;
+            opacity: 1;
+        }
+        #statusModalOverlay.hidden #statusModalCard {
+            transform: scale(0.9);
+            opacity: 0;
+        }
+        #statusModalOverlay.flex #statusModalCard {
+            transform: scale(1);
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -68,6 +103,18 @@
     <!-- ==================== Modal Overlay ==================== -->
     <div id="modalOverlay" class="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden z-50" onclick="handleOverlayClick(event)">
         <div id="modalBody" class="bg-white rounded-2xl p-8 max-w-lg w-full overflow-y-auto max-h-[85vh] shadow-2xl"></div>
+    </div>
+
+    <!-- ==================== Status Modal (Loading/Success/Error) ==================== -->
+    <div id="statusModalOverlay" class="fixed inset-0 items-center justify-center bg-black/40 backdrop-blur-md hidden z-[100]">
+        <div id="statusModalCard" class="bg-white rounded-[2rem] p-8 max-w-xs w-full shadow-2xl flex flex-col items-center text-center">
+            <div id="statusIconContainer" class="mb-5"></div>
+            <h3 id="statusTitle" class="text-xl font-extrabold text-gray-900 mb-2"></h3>
+            <p id="statusMessage" class="text-gray-600 font-medium mb-8 leading-relaxed"></p>
+            <button id="statusOkBtn" onclick="closeStatusModal()" class="w-full py-4 bg-gradient-to-r from-blue-700 to-blue-800 text-white rounded-2xl font-bold text-lg hover:shadow-lg active:scale-95 transition-all hidden">
+                حسناً
+            </button>
+        </div>
     </div>
 
     <!-- ==================== Main Container ==================== -->
@@ -166,7 +213,7 @@
     </footer>
 
     <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzPPILdWpSA9sO1112NEO8J5x2yYiJ0tzL0_KTV610sLr_jvAwLAF6Kju_Mx8yANiCE2g/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvpgZ4gcWFWTwFz5v8yR4cke4_T2Hy58dYmFn_xMHHeVu-7fsAyVq5ggRTPxbU1p7n4g/exec";
 
 // ==================== دوال الأمان ====================
 function generateNonce(){ return Math.random().toString(36).substring(2, 10); }
@@ -236,7 +283,7 @@ async function downloadReportSecure(fileId, fileName) {
     const token = await generateToken(church, "download", time, nonce, hashedPass);
     
     setLoadingState(true);
-    showMessage("⏳ جاري تجهيز الملف للتحميل…", "success");
+    showStatus('loading', "جاري تجهيز الملف للتحميل…");
 
     fetch(WEB_APP_URL, {
         method: 'POST',
@@ -350,27 +397,11 @@ async function hashPassword(password) {
 function setLoadingState(isLoading){
     const uploadBtn = document.getElementById('uploadBtn');
     const statsBtn = document.getElementById('showStatsBtn');
-    
-    let overlay = document.getElementById('globalLoadingOverlay');
-    if(!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'globalLoadingOverlay';
-        overlay.style.position = 'fixed';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100vw';
-        overlay.style.height = '100vh';
-        overlay.style.backgroundColor = 'rgba(255, 255, 255, 0.6)';
-        overlay.style.zIndex = '99999';
-        overlay.style.cursor = 'wait';
-        document.body.appendChild(overlay);
-    }
 
     if(isLoading){
-        overlay.style.display = 'block';
+        showStatus('loading', 'جاري العمل الآن...');
         if(uploadBtn) {
             uploadBtn.disabled = true;
-            uploadBtn.innerHTML = "⏳ جاري العمل...";
             uploadBtn.classList.add('opacity-50','cursor-not-allowed');
         }
         if(statsBtn) {
@@ -378,7 +409,13 @@ function setLoadingState(isLoading){
             statsBtn.classList.add('opacity-50','cursor-not-allowed');
         }
     }else{
-        overlay.style.display = 'none';
+        // نقوم بإخفاء المودال فقط إذا كان في حالة "تحميل"
+        const overlay = document.getElementById('statusModalOverlay');
+        const iconContainer = document.getElementById('statusIconContainer');
+        if(overlay && !overlay.classList.contains('hidden') && iconContainer.querySelector('.loader-spinner')) {
+            closeStatusModal();
+        }
+        
         if(uploadBtn) {
             uploadBtn.disabled = false;
             uploadBtn.innerHTML = "⚡ فحص ورفع البيانات";
@@ -390,6 +427,50 @@ function setLoadingState(isLoading){
         }
         showProgress(100);
     }
+}
+
+function showStatus(type, message) {
+    const overlay = document.getElementById('statusModalOverlay');
+    const iconContainer = document.getElementById('statusIconContainer');
+    const title = document.getElementById('statusTitle');
+    const msg = document.getElementById('statusMessage');
+    const btn = document.getElementById('statusOkBtn');
+
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+    overlay.style.zIndex = '99999'; // أعلى من أي شيء آخر
+
+    // Reset styles
+    btn.classList.add('hidden');
+    iconContainer.innerHTML = '';
+    title.className = "text-xl font-extrabold mb-2";
+    overlay.style.cursor = 'default';
+
+    if (type === 'loading') {
+        overlay.style.cursor = 'wait';
+        iconContainer.innerHTML = '<div class="loader-spinner"></div>';
+        title.textContent = 'لحظة من فضلك';
+        title.classList.add('text-blue-800');
+        msg.textContent = message || 'جاري التحميل...';
+    } else if (type === 'success') {
+        iconContainer.innerHTML = '<div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-4xl">✓</div>';
+        title.textContent = 'تم بنجاح';
+        title.classList.add('text-green-700');
+        msg.textContent = message;
+        btn.classList.remove('hidden');
+    } else if (type === 'error') {
+        iconContainer.innerHTML = '<div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-4xl">✕</div>';
+        title.textContent = 'عذراً';
+        title.classList.add('text-red-700');
+        msg.textContent = message;
+        btn.classList.remove('hidden');
+    }
+}
+
+function closeStatusModal() {
+    const overlay = document.getElementById('statusModalOverlay');
+    overlay.classList.add('hidden');
+    overlay.classList.remove('flex');
 }
         /* ==================== سحب وإفلات ==================== */
         const dropZone = document.getElementById('dropZone');
@@ -456,13 +537,17 @@ function setLoadingState(isLoading){
 
         /* ==================== رسائل للمستخدم ==================== */
         function showMessage(text, type){
-            const box = document.getElementById('messageBox');
-            box.className = "mt-4 p-4 rounded-xl";
-            if(type==="error") box.classList.add('bg-red-100','border','border-red-400','text-red-700');
-            else if(type==="success") box.classList.add('bg-green-100','border','border-green-400','text-green-700');
-            else box.classList.add('bg-gray-100','border','border-gray-300','text-gray-800');
-            box.innerHTML = text; // النص معقّم من المصدر قبل الاستدعاء
-            box.classList.remove('hidden');
+            // تحويل الرسائل العادية لتظهر في المودال الجديد
+            const cleanText = text.replace(/<br>/g, '\n').replace(/<\/?[^>]+(>|$)/g, ""); // تنظيف من التاجات لو وجدت
+            if(type === 'error' || type === 'success') {
+                showStatus(type, cleanText);
+            } else {
+                const box = document.getElementById('messageBox');
+                box.className = "mt-4 p-4 rounded-xl";
+                box.classList.add('bg-gray-100','border','border-gray-300','text-gray-800');
+                box.innerHTML = text;
+                box.classList.remove('hidden');
+            }
         }
 
         /* ==================== استخراج معلومات الصفوف ==================== */
@@ -532,7 +617,16 @@ function setLoadingState(isLoading){
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "application/vnd.ms-excel"
             ];
-            const validExt  = /\.(xlsx|xls)$/i.test(file.name);
+            const fileName = file.name;
+            const validExt = /\.(xlsx|xls)$/i.test(fileName);
+            const validChars = /^[^\\\/:*?"<>|]+$/.test(fileName.split('.').slice(0, -1).join('.'));
+
+            if(!validExt || !validChars){
+                dropZone.classList.add('shake-error');
+                setTimeout(() => dropZone.classList.remove('shake-error'), 500);
+                showMessage("❌ اسم الملف غير صالح. يرجى التأكد من أن الاسم لا يحتوي على رموز ممنوعة (مثل / \ : * ? < > |) وينتهي بـ .xlsx أو .xls", "error");
+                return;
+            }
             const validType = allowedTypes.includes(file.type) || file.type === '';
             if(!validExt || !validType || file.size > 5*1024*1024){
                 dropZone.classList.add('shake-error');
@@ -698,7 +792,7 @@ reader.readAsArrayBuffer(file);
          setLoadingState(true);
             const btn = document.getElementById('uploadBtn');
             if(btn) btn.disabled = true;
-            showMessage("⏳ جاري رفع ومعالجة البيانات…", "success");
+            showStatus('loading', "جاري رفع ومعالجة البيانات…");
 
             const hashedPassword = await hashPassword(password);
             const reader = new FileReader();
@@ -735,19 +829,8 @@ reader.readAsArrayBuffer(file);
                         document.getElementById('fileNameDisplay').textContent = "";
                         document.getElementById('fileInput').value = "";
 
-                        // 2. فتح مودال النجاح (الوظيفة اللي محتاجها)
-                        openModal(`
-                            <div class="text-center">
-                                <div class="flex justify-between items-center border-b pb-2 mb-4">
-                                    <h3 class="text-lg font-bold">✅ تم بنجاح</h3>
-                                    <span class="cursor-pointer text-2xl text-gray-500" onclick="closeModal()">×</span>
-                                </div>
-                                <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">✓</div>
-                                <p class="text-gray-800 font-semibold mb-4">تم رفع البيانات بنجاح</p>
-                                <p class="text-sm text-green-600 mb-4">${data.message || ""}</p>
-                                <button class="bg-blue-600 text-white px-4 py-2 rounded hover:opacity-90 w-full" onclick="closeModal()">حسناً</button>
-                            </div>
-                        `);
+                        // 2. فتح مودال النجاح
+                        showStatus('success', data.message || "تم رفع البيانات بنجاح");
                         fetchMyFiles();
                   }else if(data.duplicate){
                  setLoadingState(false); // ✅ هنا
@@ -893,7 +976,7 @@ reader.readAsArrayBuffer(file);
                 return;
             }
             setLoadingState(true);
-            showMessage("⏳ جاري التحميل…", "success");
+            showStatus('loading', "جاري التحميل…");
             showProgress(30);
             const hashedPass = await hashPassword(pass);
             const time = Date.now(), nonce = generateNonce();
@@ -952,8 +1035,9 @@ reader.readAsArrayBuffer(file);
                     document.getElementById('searchBox').classList.remove('hidden');
                     document.getElementById('messageBox').classList.add('hidden');
                     showProgress(100);
+                    showStatus('success', 'تم جلب البيانات وتحديث السجل بنجاح.');
                 }else{
-                    showMessage("❌ "+sanitize(data.message||''), "error");
+                    showStatus('error', sanitize(data.message||'خطأ في جلب البيانات'));
                 }
                 setLoadingState(false);
             })
@@ -1020,7 +1104,7 @@ reader.readAsArrayBuffer(file);
     const token = await generateToken(church, "delete", time, nonce, hashedPass);
 
     setLoadingState(true);
-    showMessage("⏳ جاري الحذف…", "success");
+    showStatus('loading', "جاري الحذف…");
 
     fetch(WEB_APP_URL,{
         method:'POST',
