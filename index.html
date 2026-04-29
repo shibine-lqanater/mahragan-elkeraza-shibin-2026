@@ -666,6 +666,16 @@
             }
 
             function showStatus(type, message, customTitle, errorsList) {
+                if (typeof message === 'string') {
+                    message = message.replace(/drive|درايف/gi, 'خطأ في السيرفر');
+                }
+                if (typeof customTitle === 'string') {
+                    customTitle = customTitle.replace(/drive|درايف/gi, 'خطأ في السيرفر');
+                }
+                if (errorsList && Array.isArray(errorsList)) {
+                    errorsList = errorsList.map(err => typeof err === 'string' ? err.replace(/drive|درايف/gi, 'خطأ في السيرفر') : err);
+                }
+
                 const overlay = document.getElementById('statusModalOverlay');
                 const iconContainer = document.getElementById('statusIconContainer');
                 const title = document.getElementById('statusTitle');
@@ -767,6 +777,9 @@
 
             /* ==================== نافذة Modal ==================== */
             function openModal(content) {
+                if (typeof content === 'string') {
+                    content = content.replace(/drive|درايف/gi, 'خطأ في السيرفر');
+                }
                 document.getElementById('modalBody').innerHTML = content;
                 document.getElementById('modalOverlay').classList.remove('hidden');
             }
