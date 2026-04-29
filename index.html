@@ -1,54 +1,101 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
-    
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مهرجان الكرازة - إيبارشية شبين القناطر</title>
     <meta name="description" content="بوابة رفع بيانات مهرجان الكرازة المرقسية - إيبارشية شبين القناطر">
 
     <!-- ==================== رؤوس أمان ==================== -->
-  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src * 'self' blob: data: https://*.google.com https://*.googleusercontent.com https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://unpkg.com; frame-ancestors 'none'">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src * 'self' blob: data: https://*.google.com https://*.googleusercontent.com https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://unpkg.com; frame-ancestors 'none'">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
     <meta name="referrer-policy" content="no-referrer">
     <meta name="permissions-policy" content="geolocation=(), microphone=(), camera=()">
 
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;600;700&display=swap"
+        rel="stylesheet">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <style>
-        body, input, select, button { font-family: 'Cairo', 'Inter', sans-serif !important; }
+        body,
+        input,
+        select,
+        button {
+            font-family: 'Cairo', 'Inter', sans-serif !important;
+        }
 
         #progressBar {
-            position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            width: 0%;
             background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-            z-index: 9999; transition: width 0.4s ease;
+            z-index: 9999;
+            transition: width 0.4s ease;
         }
 
         @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            50% { transform: translateX(10px); }
-            75% { transform: translateX(-10px); }
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-10px);
+            }
+
+            50% {
+                transform: translateX(10px);
+            }
+
+            75% {
+                transform: translateX(-10px);
+            }
         }
+
         .shake-error {
             animation: shake 0.3s ease-in-out;
             border-color: #ef4444 !important;
             background-color: #fef2f2 !important;
         }
+
         .error-border {
             border-color: #ef4444 !important;
             background-color: #fef2f2 !important;
         }
-        #filesTable tbody tr { transition: background-color 0.15s ease; }
-        #filesTable tbody tr:hover { background-color: #eff6ff; }
-        .stat-card { transition: transform 0.15s, box-shadow 0.15s; cursor: default; }
-        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .stat-card.has-count { background: linear-gradient(135deg,#eff6ff,#dbeafe); border: 1px solid #3b82f6; }
+
+        #filesTable tbody tr {
+            transition: background-color 0.15s ease;
+        }
+
+        #filesTable tbody tr:hover {
+            background-color: #eff6ff;
+        }
+
+        .stat-card {
+            transition: transform 0.15s, box-shadow 0.15s;
+            cursor: default;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card.has-count {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            border: 1px solid #3b82f6;
+        }
 
         /* ==================== Status Modal & Loader ==================== */
         .loader-spinner {
@@ -59,125 +106,149 @@
             height: 45px;
             animation: spin 0.8s linear infinite;
         }
+
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
+
         #statusModalOverlay {
             transition: opacity 0.3s ease;
         }
+
         #statusModalCard {
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
         }
+
         #statusModalOverlay.hidden {
             display: none;
             opacity: 0;
         }
+
         #statusModalOverlay.flex {
             display: flex;
             opacity: 1;
         }
+
         #statusModalOverlay.hidden #statusModalCard {
             transform: scale(0.9);
             opacity: 0;
         }
+
         #statusModalOverlay.flex #statusModalCard {
             transform: scale(1);
             opacity: 1;
         }
     </style>
 </head>
+
 <body class="bg-gray-100 text-gray-800">
     <div id="progressBar"></div>
 
     <!-- ==================== Header ==================== -->
-    <header class="bg-gradient-to-br from-blue-800 to-blue-900 h-32 md:h-40 flex items-center justify-center relative shadow-lg">
-        <img src="left-image.jpg" alt="شعار اليسار" class="absolute right-2 md:right-8 top-6 md:top-8 w-20 h-20 md:w-[120px] md:h-[120px] object-contain lazyload"
-             loading="lazy">
-        <h1 class="text-center text-white text-lg sm:text-xl md:text-3xl font-bold drop-shadow-lg px-24 sm:px-32 md:px-0">
+    <header
+        class="bg-gradient-to-br from-blue-800 to-blue-900 h-32 md:h-40 flex items-center justify-center relative shadow-lg">
+        <img src="left-image.jpg" alt="شعار اليسار"
+            class="absolute right-2 md:right-8 top-6 md:top-8 w-20 h-20 md:w-[120px] md:h-[120px] object-contain"
+            fetchpriority="high">
+        <h1
+            class="text-center text-white text-lg sm:text-xl md:text-3xl font-bold drop-shadow-lg px-24 sm:px-32 md:px-0">
             مهرجان الكرازة المرقسية<br>إيبارشية شبين القناطر
         </h1>
-        <img src="logo.png" alt="شعار اليمين" class="absolute left-2 md:left-8 top-6 md:top-8 w-20 h-20 md:w-[120px] md:h-[120px] object-contain lazyload"
-             loading="lazy">
+        <img src="logo.png" alt="شعار اليمين"
+            class="absolute left-2 md:left-8 top-6 md:top-8 w-20 h-20 md:w-[120px] md:h-[120px] object-contain"
+            fetchpriority="high">
     </header>
 
     <!-- ==================== Modal Overlay ==================== -->
-    <div id="modalOverlay" class="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden z-50" onclick="handleOverlayClick(event)">
-        <div id="modalBody" class="bg-white rounded-2xl p-8 max-w-lg w-full overflow-y-auto max-h-[85vh] shadow-2xl"></div>
+    <div id="modalOverlay"
+        class="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden z-50"
+        onclick="handleOverlayClick(event)">
+        <div id="modalBody" class="bg-white rounded-2xl p-8 max-w-lg w-full overflow-y-auto max-h-[85vh] shadow-2xl">
+        </div>
     </div>
 
     <!-- ==================== Status Modal (Loading/Success/Error) ==================== -->
-    <div id="statusModalOverlay" class="fixed inset-0 items-center justify-center bg-black/40 backdrop-blur-md hidden z-[100]">
-        <div id="statusModalCard" class="bg-white rounded-[2rem] p-8 max-w-xs w-full shadow-2xl flex flex-col items-center text-center">
+    <div id="statusModalOverlay"
+        class="fixed inset-0 items-center justify-center bg-black/40 backdrop-blur-md hidden z-[100]">
+        <div id="statusModalCard"
+            class="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center">
             <div id="statusIconContainer" class="mb-5"></div>
             <h3 id="statusTitle" class="text-xl font-extrabold text-gray-900 mb-2"></h3>
-            <p id="statusMessage" class="text-gray-600 font-medium mb-8 leading-relaxed"></p>
-            <button id="statusOkBtn" onclick="closeStatusModal()" class="w-full py-4 bg-gradient-to-r from-blue-700 to-blue-800 text-white rounded-2xl font-bold text-lg hover:shadow-lg active:scale-95 transition-all hidden">
-                حسناً
+            <div id="statusMessage"
+                class="text-gray-600 font-medium mb-6 leading-relaxed w-full max-h-64 overflow-y-auto"></div>
+            <button id="statusOkBtn" onclick="closeStatusModal()"
+                class="w-full py-4 bg-gradient-to-r from-blue-700 to-blue-800 text-white rounded-2xl font-bold text-lg hover:shadow-lg active:scale-95 transition-all hidden">
+                OK
             </button>
         </div>
     </div>
 
     <!-- ==================== Main Container ==================== -->
-   <main class="max-w-2xl mx-auto my-6 md:my-10 w-[95%] sm:w-[98%] md:w-full bg-white p-5 md:p-9 rounded-2xl shadow-lg border-t-4 border-blue-800">
+    <main
+        class="max-w-2xl mx-auto my-6 md:my-10 w-[95%] sm:w-[98%] md:w-full bg-white p-5 md:p-9 rounded-2xl shadow-lg border-t-4 border-blue-800">
+
+        <!-- عداد الجلسة -->
+        <div id="sessionTimerContainer"
+            class="hidden mb-6 p-3 bg-blue-50 border border-blue-200 rounded-xl text-center font-bold text-blue-800 animate-pulse">
+            <span id="sessionCountdown">⏳ الوقت المتبقي للجلسة: 60:00</span>
+        </div>
 
         <!-- الكنيسة -->
         <label for="churchName" class="block font-bold mb-2 text-gray-800 text-sm">💒 اختر الكنيسة:</label>
-        <input list="churchesList" id="churchName"
-               placeholder="🔍 ابدأ بكتابة اسم الكنيسة..."
-               class="w-full p-4 mb-5 rounded-xl border border-gray-300 focus:border-blue-800 focus:outline-none bg-gray-50 focus:ring-4 focus:ring-blue-100"
-               autocomplete="off" maxlength="100">
+        <input list="churchesList" id="churchName" placeholder="🔍 ابدأ بكتابة اسم الكنيسة..."
+            class="w-full p-4 mb-5 rounded-xl border border-gray-300 focus:border-blue-800 focus:outline-none bg-gray-50 focus:ring-4 focus:ring-blue-100"
+            autocomplete="off" maxlength="100">
         <datalist id="churchesList"></datalist>
 
         <!-- كلمة المرور -->
         <label for="password" class="block font-bold mb-2 text-gray-800 text-sm">🔑 كلمة المرور:</label>
         <div class="relative">
-            <input type="password" id="password"
-                   placeholder="أدخل كلمة المرور الخاصة بالكنيسة"
-                   class="w-full p-4 mb-5 rounded-xl border border-gray-300 focus:border-blue-800 focus:outline-none bg-gray-50 focus:ring-4 focus:ring-blue-100"
-                   autocomplete="new-password" maxlength="64">
+            <input type="password" id="password" placeholder="أدخل كلمة المرور الخاصة بالكنيسة"
+                class="w-full p-4 mb-5 rounded-xl border border-gray-300 focus:border-blue-800 focus:outline-none bg-gray-50 focus:ring-4 focus:ring-blue-100"
+                autocomplete="new-password" maxlength="64">
             <button type="button" id="togglePassBtn"
-                    class="absolute left-3 top-3 text-sm bg-gray-200 hover:bg-gray-300 rounded-md px-2 py-1 cursor-pointer transition"
-                    onclick="togglePass()">👁️ عرض</button>
+                class="absolute left-3 top-3 text-sm bg-gray-200 hover:bg-gray-300 rounded-md px-2 py-1 cursor-pointer transition"
+                onclick="togglePass()">👁️ عرض</button>
         </div>
 
         <!-- رفع الملف -->
         <div id="uploadAreaContainer">
             <label class="font-bold mb-2 text-gray-800 text-sm">📄 ملف الإكسيل (XLSX أو XLS):</label>
-            <div id="dropZone"
-                 class="border-2 border-dashed border-blue-800 rounded-2xl p-6 bg-gray-50 hover:bg-gray-100 flex flex-col items-center cursor-pointer mb-5"
-                 onclick="document.getElementById('fileInput').click()">
+            <div id="dropZone" tabindex="0" role="button" aria-label="اختر ملف الإكسيل"
+                class="border-2 border-dashed border-blue-800 rounded-2xl p-6 bg-gray-50 hover:bg-gray-100 focus:bg-blue-50 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-200 flex flex-col items-center cursor-pointer mb-5"
+                onclick="document.getElementById('fileInput').click()"
+                onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); document.getElementById('fileInput').click(); }">
                 <div class="text-4xl text-blue-800 mb-2">📤</div>
                 <div class="text-sm text-gray-600 mb-2">اضغط هنا أو اسحب الملف (xls أو xlsx)</div>
                 <div id="fileNameDisplay" class="text-sm text-green-700 font-bold mt-2"></div>
-                <input type="file" id="fileInput" accept=".xlsx,.xls"
-                       class="hidden" onchange="handleFileSelect(this)">
+                <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden" onchange="handleFileSelect(this)">
             </div>
             <button id="uploadBtn"
-                    class="w-full p-4 bg-gradient-to-br from-green-700 to-green-900 text-white rounded-xl font-bold hover:opacity-90 transform hover:-translate-y-0.5 transition"
-                    type="button" onclick="validateFile()">⚡ فحص ورفع البيانات</button>
+                class="w-full p-4 bg-gradient-to-br from-green-700 to-green-900 text-white rounded-xl font-bold hover:opacity-90 transform hover:-translate-y-0.5 transition"
+                type="button" onclick="validateFile()">⚡ فحص ورفع البيانات</button>
         </div>
 
         <!-- عرض الإحصائيات -->
         <button id="showStatsBtn"
-                class="w-full mt-4 p-4 bg-gradient-to-br from-gray-700 to-gray-900 text-white rounded-xl font-bold hover:opacity-90 transform hover:-translate-y-0.5 transition"
-                type="button" onclick="fetchMyFiles()">📋 عرض الإحصائيات والسجل</button>
+            class="w-full mt-4 p-4 bg-gradient-to-br from-gray-700 to-gray-900 text-white rounded-xl font-bold hover:opacity-90 transform hover:-translate-y-0.5 transition"
+            type="button" onclick="fetchMyFiles()">📋 عرض الإحصائيات والسجل</button>
 
-        <!-- صندوق الرسائل -->
-        <div id="messageBox" class="mt-4 p-4 rounded-xl hidden" role="alert" aria-live="polite"></div>
 
         <!-- صندوق البحث -->
         <section id="searchBox" class="mt-6 bg-gray-50 p-5 rounded-2xl hidden">
-            <label for="searchNameInput" class="block mb-2 text-gray-800 text-sm" style="color:#c05621;">🔎 بحث سريع عن مشترك:</label>
-            <input type="text" id="searchNameInput"
-                   placeholder="اكتب اسم الشخص..."
-                   class="w-full p-3 mb-3 rounded-xl border border-gray-300 focus:border-blue-800 focus:outline-none"
-                   autocomplete="off" maxlength="100">
+            <label for="searchNameInput" class="block mb-2 text-gray-800 text-sm" style="color:#c05621;">🔎 بحث سريع عن
+                مشترك:</label>
+            <input type="text" id="searchNameInput" placeholder="اكتب اسم الشخص..."
+                class="w-full p-3 mb-3 rounded-xl border border-gray-300 focus:border-blue-800 focus:outline-none"
+                autocomplete="off" maxlength="100">
             <select id="searchStageInput"
-                    class="w-full p-3 mb-3 rounded-xl border border-gray-300 focus:border-blue-800 focus:outline-none">
+                class="w-full p-3 mb-3 rounded-xl border border-gray-300 focus:border-blue-800 focus:outline-none">
                 <option value="">-- كل المراحل --</option>
             </select>
-            <button class="w-full p-3 bg-orange-600 text-white rounded-xl font-bold hover:opacity-90"
-                    type="button" onclick="searchInNames()">ابدأ البحث</button>
+            <button class="w-full p-3 bg-orange-600 text-white rounded-xl font-bold hover:opacity-90" type="button"
+                onclick="searchInNames()">ابدأ البحث</button>
             <div id="searchResults" class="mt-4"></div>
         </section>
 
@@ -185,7 +256,8 @@
         <section id="statsCard" class="mt-6 bg-blue-50 p-5 rounded-2xl border-r-4 border-blue-600 hidden">
             <label class="block mb-2 text-gray-800 text-sm" style="color:#2b6cb0;">📊 توزيع المراحل (إجمالي):</label>
             <div id="statsGrid" class="grid grid-cols-2 gap-2 mt-3"></div>
-            <div class="mt-4 text-center font-bold text-lg text-green-800">إجمالي المقيدين: <span id="totalChurchCount">0</span></div>
+            <div class="mt-4 text-center font-bold text-lg text-green-800">إجمالي المقيدين: <span
+                    id="totalChurchCount">0</span></div>
         </section>
 
         <!-- سجل الملفات -->
@@ -213,537 +285,712 @@
     </footer>
 
     <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzd9pZjIMWDXlQZ2r5Mx_Rbzoqm_XJC_ZD19LrDHcnzhouKz3idzxsDBm-WbHX6BXeitw/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyzSo8lDO3zP-tgH_i11sg2yNgPiG2b2LKei2Rf_kLbMVVYw47Ike1JzOAq5gfEYPD_ng/exec";
 
-// ==================== دوال الأمان ====================
-function generateNonce(){ return Math.random().toString(36).substring(2, 10); }
+        // ==================== متغيرات الحالة ====================
+        let tempUpload = null;
+        let _lastActionTime = 0;
+        const ACTION_COOLDOWN_MS = 3000;
 
-// HMAC-SHA256 متوافق مع verifyTokenSecure في Apps Script
-async function generateToken(church, action, time, nonce, hashedPassword) {
-    const enc = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-        'raw', enc.encode(hashedPassword),
-        {name:'HMAC', hash:'SHA-256'}, false, ['sign']
-    );
-    // تم إزالة النص العربي (اسم الكنيسة) لتجنب مشاكل فك التشفير بين المتصفح والسيرفر
-    const payload = action + ':' + time + ':' + nonce;
-    const sig = await crypto.subtle.sign('HMAC', key, enc.encode(payload));
-    return Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
+        // ==================== دوال الأمان ====================
 
-function showProgress(pct){
-    const bar = document.getElementById('progressBar');
-    bar.style.width = pct + '%';
-    if(pct >= 100) setTimeout(()=>{ bar.style.width='0%'; }, 700);
-}
-
-async function downloadReportSecure(fileId, fileName) {
-    ['churchName', 'password', 'dropZone'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.classList.remove('error-border');
-    });
-
-    const churchInput = document.getElementById('churchName');
-    const passwordInput = document.getElementById('password');
-    const church = churchInput ? sanitize(churchInput.value) : "";
-    const pass = passwordInput ? passwordInput.value.trim() : "";
-
-    let hasError = false;
-    let errorsList = [];
-
-    if(!church || !churches.includes(church)) {
-        if(churchInput) {
-            churchInput.classList.add('shake-error', 'error-border');
-            setTimeout(() => churchInput.classList.remove('shake-error'), 500);
-            churchInput.oninput = () => churchInput.classList.remove('error-border');
+        // Nonce آمن تشفيرياً بدلاً من Math.random()
+        function generateNonce() {
+            const arr = new Uint8Array(16);
+            crypto.getRandomValues(arr);
+            return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
         }
-        hasError = true;
-        if(!church) errorsList.push("اختيار الكنيسة");
-        else errorsList.push("اختيار كنيسة صحيحة من القائمة");
-    }
-    if(!pass || pass.length < 4) {
-        if(passwordInput) {
-            passwordInput.classList.add('shake-error', 'error-border');
-            setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
-            passwordInput.oninput = () => passwordInput.classList.remove('error-border');
-        }
-        hasError = true;
-        if(!pass) errorsList.push("إدخال كلمة المرور");
-        else errorsList.push("أن تكون كلمة المرور 4 أحرف كحد أدنى");
-    }
 
-    if(hasError) {
-        showMessage("⚠️ لتحميل التقرير، يرجى التأكد من: " + errorsList.join("، و") + ".", "error");
-        return;
-    }
-
-    const hashedPass = await hashPassword(pass);
-    const time = Date.now();
-    const nonce = generateNonce();
-    const token = await generateToken(church, "download", time, nonce, hashedPass);
-    
-    setLoadingState(true, "جاري تجهيز الملف للتحميل…", "جاري التحميل");
-
-    fetch(WEB_APP_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-            action: "download",
-            fileId: fileId,
-            church: church,
-            password: hashedPass,
-            token: token,
-            time: time,
-            nonce: nonce
-        })
-    })
-    .then(r => r.json())
-    .then(data => {
-        setLoadingState(false);
-        if(data.success && data.fileData) {
-            const byteCharacters = atob(data.fileData);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
+        // منع الطلبات المتكررة من جانب العميل
+        function isRateLimited() {
+            if (checkBruteForce()) return true;
+            const now = Date.now();
+            if (now - _lastActionTime < ACTION_COOLDOWN_MS) {
+                showStatus('error', 'يرجى الانتظار لحظة قبل تكرار العملية.', 'طلب سريع جداً');
+                return true;
             }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], {type: data.mimeType});
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = data.fileName || fileName || "report.xlsx";
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-            showStatus('success', "تم تحميل الملف بنجاح.", "اكتمل التحميل");
-        } else {
-            showStatus('error', sanitize(data.message||''), "فشل التحميل");
+            _lastActionTime = now;
+            return false;
         }
-    })
-    .catch(err => {
-        setLoadingState(false);
-        showMessage("❌ خطأ اتصال: " + err, "error");
-    });
-}
 
-        /* ==================== بيانات ثابتة ==================== */
-        const fixedStages = [
-            "حضانة","أولى وثانية","ثالثة ورابعة","خامسة وسادسة","إعدادى",
-            "ثانوى","جامعة","الخدام واعداد الخدام","خريجين","ديديموس",
-            "ذوى القدرات الخاصة","قانا الجليل","تعليم الكبار","الصم والبكم",
-            "سمعان الشيخ","الحرفيون"
-        ];
+        // ==================== حماية البرود فورس والسيشن ====================
+        const BRUTE_FORCE_LIMIT = 3;
+        const BRUTE_FORCE_BLOCK_TIME = 60000;
+        let sessionTimer = null;
 
-        // ملء قائمة المراحل في صندوق البحث
-        const stageSelect = document.getElementById("searchStageInput");
-        fixedStages.forEach(s => {
-            const opt = document.createElement("option");
-            opt.value = s;
-            opt.textContent = s;
-            stageSelect.appendChild(opt);
-        });
-
-        // قائمة الكنائس (مُرتّبة)
-        const churches = [
-            "كنيسة العذراء المطرانية","العذراء و ابوسفين السلمانية","العذراء و ابوسفين دجوي",
-            "العذراء و الانبا بيشوي المنية","العذراء و الانبا موسي الخصوص","العذراء و البابا بطرس الخانكة",
-            "العذراء و الرسولين","العذراء و الشهدين القلج","العذراء و الشهيد ابانوب القلج",
-            "العذراء و الشهيد ابانوب المرج الغربية","العذراء و الملاك العكرشة","العذراء و الملاك ميخائيل الخصوص",
-            "العذراء و مارجرجس كفر شبين","العذراء و مارمينا الجبل الاصفر","العذراء و ماريوحنا الخصوص",
-            "العذراء و يوسف النجار الخصوص","كنيسة ابوسفين الخصوص","كنيسة ابوسفين و دميانة الجبل الاصفر",
-            "كنيسة الانبا بيشوي كوم الاطرون","كنيسة الانبا كاراس الخصوص","كنيسة الانبا كاراس نوي",
-            "كنيسة البابا اثناسيوس الخصوص","كنيسة البابا كيرلس كفر الدير","كنيسة الشهيدة دميانة ميت عاصم",
-            "كنيسة الشهيدة دميانة ميت كنانة","كنيسة الملاك القشيش","كنيسة الملاك القلزم",
-            "كنيسة مارجرجس بلتان","كنيسة مارجرجس طوخ","كنيسة مارجرجس قها",
-            "كنيسة مارجرجس و البابا ديسقورس","كنيسة مارمينا ساحل دجوي","كنيسة مارمينا و البابا كيرلس الخصوص",
-            "مارجرجس ابو زعبل","مارجرجس شبين القناطر","مذبح الامير تادرس الخصوص"
-        ].sort();
-
-        // ملء datalist بالكنائس
-        const datalist = document.getElementById('churchesList');
-        churches.forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            datalist.appendChild(opt);
-        });
-
-        /* ==================== وظائف مساعدة ==================== */
-
-        function sanitize(str){
-            if(!str) return "";
-            return str.replace(/[&<>"'`=\/]/g, s => ({
-                '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'" :'&#39;','`':'&#x60;','=':'&#x3D;','/':'&#x2F;'
-            })[s]);
-        }
-       function normalizeName(text){
-    if(!text) return "";
-    return text.toString()
-        .trim()
-        .replace(/\s+/g,' ')
-        .replace(/[أإآا]/g,'ا')
-        .replace(/ة/g,'ه')
-        .replace(/ى/g,'ي')
-        .replace(/[ًٌٍَُِّ]/g,'');
-}
-async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-function setLoadingState(isLoading, message, title){
-    const uploadBtn = document.getElementById('uploadBtn');
-    const statsBtn = document.getElementById('showStatsBtn');
-
-    if(isLoading){
-        showStatus('loading', message || 'جاري العمل الآن...', title);
-        if(uploadBtn) {
-            uploadBtn.disabled = true;
-            uploadBtn.classList.add('opacity-50','cursor-not-allowed');
-        }
-        if(statsBtn) {
-            statsBtn.disabled = true;
-            statsBtn.classList.add('opacity-50','cursor-not-allowed');
-        }
-    }else{
-        // نقوم بإخفاء المودال فقط إذا كان في حالة "تحميل"
-        const overlay = document.getElementById('statusModalOverlay');
-        const iconContainer = document.getElementById('statusIconContainer');
-        if(overlay && !overlay.classList.contains('hidden') && iconContainer.querySelector('.loader-spinner')) {
-            closeStatusModal();
-        }
-        
-        if(uploadBtn) {
-            uploadBtn.disabled = false;
-            uploadBtn.innerHTML = "⚡ فحص ورفع البيانات";
-            uploadBtn.classList.remove('opacity-50','cursor-not-allowed');
-        }
-        if(statsBtn) {
-            statsBtn.disabled = false;
-            statsBtn.classList.remove('opacity-50','cursor-not-allowed');
-        }
-        showProgress(100);
-    }
-}
-
-function showStatus(type, message, customTitle) {
-    const overlay = document.getElementById('statusModalOverlay');
-    const iconContainer = document.getElementById('statusIconContainer');
-    const title = document.getElementById('statusTitle');
-    const msg = document.getElementById('statusMessage');
-    const btn = document.getElementById('statusOkBtn');
-
-    overlay.classList.remove('hidden');
-    overlay.classList.add('flex');
-    overlay.style.zIndex = '99999'; // أعلى من أي شيء آخر
-
-    // Reset styles
-    btn.classList.add('hidden');
-    iconContainer.innerHTML = '';
-    title.className = "text-xl font-extrabold mb-2";
-    overlay.style.cursor = 'default';
-
-    if (type === 'loading') {
-        overlay.style.cursor = 'wait';
-        iconContainer.innerHTML = '<div class="loader-spinner"></div>';
-        title.textContent = customTitle || 'لحظة من فضلك';
-        title.classList.add('text-blue-800');
-        msg.textContent = message || 'جاري التحميل...';
-    } else if (type === 'success') {
-        iconContainer.innerHTML = '<div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-4xl">✓</div>';
-        title.textContent = customTitle || 'تم بنجاح';
-        title.classList.add('text-green-700');
-        msg.textContent = message;
-        btn.classList.remove('hidden');
-    } else if (type === 'error') {
-        iconContainer.innerHTML = '<div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-4xl">✕</div>';
-        title.textContent = customTitle || 'عذراً';
-        title.classList.add('text-red-700');
-        msg.textContent = message;
-        btn.classList.remove('hidden');
-    }
-}
-
-function closeStatusModal() {
-    const overlay = document.getElementById('statusModalOverlay');
-    overlay.classList.add('hidden');
-    overlay.classList.remove('flex');
-}
-        /* ==================== سحب وإفلات ==================== */
-        const dropZone = document.getElementById('dropZone');
-        ['dragover','dragleave','drop'].forEach(ev=>{
-            dropZone.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();});
-        });
-        dropZone.addEventListener('dragover',()=>dropZone.classList.add('dragover'));
-        dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
-        dropZone.addEventListener('drop',e=>{
-            dropZone.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if(files.length){
-                document.getElementById('fileInput').files = files;
-                handleFileSelect(document.getElementById('fileInput'));
+        function checkBruteForce() {
+            const blockedUntil = localStorage.getItem('blockedUntil');
+            if (blockedUntil && Date.now() < blockedUntil) {
+                const remaining = Math.ceil((blockedUntil - Date.now()) / 1000);
+                showStatus('error', `⚠️ الموقع حالياً في حالة حظر. يرجى الانتظار (${remaining}) ثانية حتى يتم فك الحظر تلقائياً لتتمكن من المحاولة مرة أخرى.`, 'انتظر حتى يتم فك الحظر', null, 'إغلاق');
+                return true;
             }
-        });
-
-        /* Enter للبحث */
-        ['searchNameInput','searchStageInput'].forEach(id=>{
-            document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') searchInNames(); });
-        });
-
-        /* ==================== معالجة اختيار ملف ==================== */
-        function handleFileSelect(input){
-            const disp = document.getElementById('fileNameDisplay');
-            if(input.files.length){
-                disp.textContent = "✅ الملف المختار: "+input.files[0].name;
-                disp.classList.remove('hidden');
-            }else{
-                disp.textContent = "";
-                disp.classList.add('hidden');
-            }
+            return false;
         }
 
-        /* ==================== إظهار/إخفاء كلمة المرور ==================== */
-        function togglePass(){
-            const p = document.getElementById('password');
-            const btn = document.getElementById('togglePassBtn');
-            if(p.type === "password"){
-                p.type = "text";
-                btn.textContent = "🙈 إخفاء";
+        function recordFailedAttempt() {
+            let attempts = parseInt(localStorage.getItem('failedAttempts') || 0) + 1;
+            localStorage.setItem('failedAttempts', attempts);
+            if (attempts >= BRUTE_FORCE_LIMIT) {
+                localStorage.setItem('blockedUntil', Date.now() + BRUTE_FORCE_BLOCK_TIME);
+                localStorage.setItem('failedAttempts', 0);
+                showStatus('error', '⚠️ تم إيقاف التعامل مع الموقع لمدة 60 ثانية بسبب محاولات خاطئة متكررة. يرجى الانتظار.', 'تنبيه أمان - تم الحظر', null, 'إغلاق');
             } else {
-                p.type = "password";
-                btn.textContent = "👁️ عرض";
+                const remaining = BRUTE_FORCE_LIMIT - attempts;
+                const remainingText = (remaining === 2) ? "متبقي لك محاولتان" : "متبقي لك محاولة واحدة فقط";
+                showStatus('error', `❌ كلمة المرور خاطئة. ${remainingText} قبل حظر الموقع تماماً.`, 'كلمة مرور خاطئة', null, 'محاولة أخرى');
             }
         }
 
-        /* ==================== نافذة Modal ==================== */
-        function openModal(content){
-            document.getElementById('modalBody').innerHTML = content;
-            document.getElementById('modalOverlay').classList.remove('hidden');
-        }
-        function closeModal(){
-            document.getElementById('modalOverlay').classList.add('hidden');
-            tempUpload = null; // مسح بيانات التحميل المؤقتة من الذاكرة
-            const btn = document.getElementById('uploadBtn');
-            if(btn) btn.disabled = false;
-            const msg = document.getElementById('messageBox');
-            if(msg && msg.innerHTML.includes('جاري رفع')) msg.classList.add('hidden');
-        }
-        function handleOverlayClick(e){
-            if(e.target === document.getElementById('modalOverlay')) closeModal();
-        }
+            function startSessionTimer() {
+                const expiry = Date.now() + 3600000; // 1 hour
+                sessionStorage.setItem('sessionExpiry', expiry);
+                updateTimerDisplay();
+                if (sessionTimer) clearInterval(sessionTimer);
+                sessionTimer = setInterval(updateTimerDisplay, 1000);
+            }
 
+            function updateTimerDisplay() {
+                const expiry = sessionStorage.getItem('sessionExpiry');
+                if (!expiry) return;
+                const remaining = expiry - Date.now();
+                if (remaining <= 0) {
+                    clearInterval(sessionTimer);
+                    sessionStorage.removeItem('sessionExpiry');
 
+                    // تفريغ الحقول وإخفاء الأقسام لضمان العودة للبداية
+                    const churchInput = document.getElementById('churchName');
+                    const passInput = document.getElementById('password');
+                    if (churchInput) churchInput.value = "";
+                    if (passInput) passInput.value = "";
 
-        /* ==================== استخراج معلومات الصفوف ==================== */
-      function getRowInfo(row){
-            const day = row[3]||"?", month=row[4]||"?", year=row[5]||"?";
-            const activities = []; let stage = "غير محدد"; 
-            for(let c=6;c<=13;c++){
-                const val = row[c]?row[c].toString().trim():"";
-                if(val && !val.includes("ختر")){
-                    activities.push(val);
-                    fixedStages.forEach(fs=>{if(val.includes(fs)) stage=fs;});
+                    document.getElementById('statsCard').classList.add('hidden');
+                    document.getElementById('historySection').classList.add('hidden');
+                    document.getElementById('searchBox').classList.add('hidden');
+                    document.getElementById('sessionTimerContainer').classList.add('hidden');
+
+                    showStatus('error', '⚠️ انتهت مدة الجلسة (ساعة واحدة). سيتم العودة للواجهة الرئيسية وتفريغ البيانات للأمان.', 'الجلسة منتهية', null, 'حسناً');
+                    setTimeout(() => {
+                        location.href = location.pathname; // إعادة التوجيه لنفس الصفحة بدون أي معطيات
+                    }, 3000);
+                    return;
+                }
+                const mins = Math.floor(remaining / 60000);
+                const secs = Math.floor((remaining % 60000) / 1000);
+                const timerEl = document.getElementById('sessionCountdown');
+                if (timerEl) {
+                    timerEl.textContent = `⏳ الوقت المتبقي للجلسة: ${mins}:${secs.toString().padStart(2, '0')}`;
+                    document.getElementById('sessionTimerContainer').classList.remove('hidden');
                 }
             }
-            return `<b>المرحلة:</b> ${stage} \vert  📅 <b>الميلاد:</b> ${day}/${month}/${year} <br> 🏆 <b>المسابقات:</b> ${activities.join(" ، ")}`;
-        }
 
-        /* ==================== التحقق من صحة الملف قبل الإرسال ==================== */
-       function validateFile(){
-            ['churchName', 'password', 'dropZone'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.classList.remove('error-border');
+            // استعادة المؤقت عند تحميل الصفحة إذا كان موجوداً أو بدء مؤقت جديد
+            window.addEventListener('load', () => {
+                const expiry = sessionStorage.getItem('sessionExpiry');
+                if (expiry && Date.now() < expiry) {
+                    sessionTimer = setInterval(updateTimerDisplay, 1000);
+                    updateTimerDisplay();
+                } else {
+                    startSessionTimer(); // بدء مؤقت جديد من أول ما الصفحة تفتح
+                }
             });
 
-            const churchInput = document.getElementById('churchName');
-            const passwordInput = document.getElementById('password');
-            const fileInput = document.getElementById('fileInput');
-            const dropZone = document.getElementById('dropZone'); // نحتاجه للهزة واللون الأحمر
-
-            const church = sanitize(churchInput.value);
-            const password = passwordInput.value.trim(); // لا نعقّم كلمة المرور لأنها ستُشفّر بـ SHA-256
-            const file = fileInput.files[0];
-
-            let hasError = false;
-            let errorsList = [];
-
-            if(!church || !churches.includes(church)){
-                churchInput.classList.add('shake-error', 'error-border');
-                setTimeout(() => churchInput.classList.remove('shake-error'), 500);
-                churchInput.oninput = () => churchInput.classList.remove('error-border');
-                hasError = true;
-                if(!church) errorsList.push("اختيار الكنيسة");
-                else errorsList.push("اختيار كنيسة صحيحة من القائمة");
-            }
-            if(!password || password.length < 4){
-                passwordInput.classList.add('shake-error', 'error-border');
-                setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
-                passwordInput.oninput = () => passwordInput.classList.remove('error-border');
-                hasError = true;
-                if(!password) errorsList.push("إدخال كلمة المرور");
-                else errorsList.push("أن تكون كلمة المرور 4 أحرف كحد أدنى");
-            }
-            if(!file){
-                dropZone.classList.add('shake-error', 'error-border');
-                setTimeout(() => dropZone.classList.remove('shake-error'), 500);
-                fileInput.addEventListener('change', () => dropZone.classList.remove('error-border'), {once: true});
-                hasError = true;
-                errorsList.push("إرفاق ملف الإكسيل");
+            // Fetch مع Timeout (60 ثانية) لمنع التعليق اللانهائي
+            function fetchWithTimeout(url, options, ms = 60000) {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), ms);
+                return fetch(url, { ...options, signal: ctrl.signal })
+                    .finally(() => clearTimeout(tid));
             }
 
-            if(hasError){
-                showStatus('error', "يرجى التأكد من: " + errorsList.join("، و") + ".", "خطأ في البيانات");
-                return;
+            // HMAC-SHA256 متوافق مع verifyTokenSecure في Apps Script
+            async function generateToken(church, action, time, nonce, hashedPassword) {
+                const enc = new TextEncoder();
+                const key = await crypto.subtle.importKey(
+                    'raw', enc.encode(hashedPassword),
+                    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+                );
+                // تم إزالة النص العربي (اسم الكنيسة) لتجنب مشاكل فك التشفير بين المتصفح والسيرفر
+                const payload = action + ':' + time + ':' + nonce;
+                const sig = await crypto.subtle.sign('HMAC', key, enc.encode(payload));
+                return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
             }
 
-            // تحقق من نوع وحجم الملف
-            const allowedTypes = [
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "application/vnd.ms-excel"
-            ];
-            const fileName = file.name;
-            const validExt = /\.(xlsx|xls)$/i.test(fileName);
-            const validChars = /^[^\\\/:*?"<>|]+$/.test(fileName.split('.').slice(0, -1).join('.'));
-
-            if(!validExt || !validChars){
-                dropZone.classList.add('shake-error');
-                setTimeout(() => dropZone.classList.remove('shake-error'), 500);
-                showStatus('error', "اسم الملف غير صالح. يرجى التأكد من أن الاسم لا يحتوي على رموز ممنوعة (مثل / \\ : * ? < > |) وينتهي بـ .xlsx أو .xls", "اسم ملف غير صالح");
-                return;
-            }
-            const validType = allowedTypes.includes(file.type) || file.type === '';
-            if(!validExt || !validType || file.size > 5*1024*1024){
-                dropZone.classList.add('shake-error');
-                setTimeout(() => dropZone.classList.remove('shake-error'), 500);
-
-                showStatus('error', "نوع أو حجم الملف غير مقبول. يُسمح فقط بملفات XLSX/XLS حتى 5 مB.", "ملف غير مقبول");
-                return;
+            function showProgress(pct) {
+                const bar = document.getElementById('progressBar');
+                bar.style.width = pct + '%';
+                if (pct >= 100) setTimeout(() => { bar.style.width = '0%'; }, 700);
             }
 
-           const reader = new FileReader();
-reader.onload = function(e) {
-    try {
-        const data = new Uint8Array(e.target.result);
-        const wb = XLSX.read(data, {type: 'array'});
-        const sheetName = wb.SheetNames[0];
-        const sheet = wb.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(sheet, {header: 1});
-        
-        if (typeof checkData === "function") {
-            checkData(rows, password, church, file);
-        } else {
-            console.error("دالة checkData غير معرفة!");
-        }
-    } catch (err) {
-        console.error("حدث خطأ تقني:", err);
-        showStatus('error', "فشل في معالجة الملف: " + sanitize(err.message||''), "خطأ فني");
-    }
-};
-reader.readAsArrayBuffer(file);
-        }
+            async function downloadReportSecure(fileId, fileName) {
+                if (isRateLimited()) return;
+                ['churchName', 'password', 'dropZone'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.remove('error-border');
+                });
 
-        /* ==================== فحص البيانات داخل الملف ==================== */
-        function checkData(rows, password, churchName, fileObject){
-            const allErrors = [], nameInfo = {}, internalDuplicates = [], descriptionData = [];
-            const currentFileLevels = {}, now = new Date();
-            const todayDay = now.getDate(), todayMonth = now.getMonth()+1, todayYear = now.getFullYear();
-            let validCount = 0;
+                const churchInput = document.getElementById('churchName');
+                const passwordInput = document.getElementById('password');
+                const church = churchInput ? sanitize(churchInput.value) : "";
+                const pass = passwordInput ? passwordInput.value.trim() : "";
 
-            for(let i=2;i<rows.length;i++){
-                const row = rows[i];
-                if(!row || row.length===0) continue;
+                let hasError = false;
+                let errorsList = [];
 
-                const originalName = row[0]?row[0].toString().trim().replace(/\s+/g,' '):"";
-                if(!originalName) continue;
-
-                const cleanName = normalizeName(originalName);
-                const currentRowDetails = getRowInfo(row);
-
-                // منطق التكرار (اسم + مرحلة)
-                const rowStages = [];
-                for(let c=6;c<=13;c++){
-                    const val = row[c]?row[c].toString().trim():"";
-                    fixedStages.forEach(fs=>{if(val.includes(fs) && !rowStages.includes(fs)) rowStages.push(fs);});
+                if (!church || !churches.includes(church)) {
+                    if (churchInput) {
+                        churchInput.classList.add('shake-error', 'error-border');
+                        setTimeout(() => churchInput.classList.remove('shake-error'), 500);
+                        churchInput.oninput = () => churchInput.classList.remove('error-border');
+                    }
+                    hasError = true;
+                    if (!church) errorsList.push("اختيار الكنيسة");
+                    else errorsList.push("اختيار كنيسة صحيحة من القائمة");
                 }
-                const mainStage = rowStages[0]||"غير محدد";
-                const dupKey = `${cleanName}\vert ${mainStage}`;
+                if (!pass || pass.length < 4) {
+                    if (passwordInput) {
+                        passwordInput.classList.add('shake-error', 'error-border');
+                        setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
+                        passwordInput.oninput = () => passwordInput.classList.remove('error-border');
+                    }
+                    hasError = true;
+                    if (!pass) errorsList.push("إدخال كلمة المرور");
+                    else errorsList.push("أن تكون كلمة المرور 4 أحرف كحد أدنى");
+                }
 
-                if(!nameInfo[dupKey]){
-                    nameInfo[dupKey] = {name:originalName,rowNum:i+1,info:currentRowDetails};
-                }else{
-                    internalDuplicates.push({
-                        name:originalName,
-                        currentRow:i+1,
-                        currentInfo:currentRowDetails,
-                        prevRow:nameInfo[dupKey].rowNum,
-                        prevInfo:nameInfo[dupKey].info
+                if (hasError) {
+                    showStatus('error', "⚠️ لتحميل التقرير، يرجى التأكد من: " + errorsList.join("، و") + ".", "خطأ في التحقق", null, 'مراجعة');
+                    return;
+                }
+
+                const hashedPass = await hashPassword(pass);
+                const time = Date.now();
+                const nonce = generateNonce();
+                const token = await generateToken(church, "download", time, nonce, hashedPass);
+
+                setLoadingState(true, "جاري تجهيز الملف للتحميل…", "جاري التحميل");
+
+                fetchWithTimeout(WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: "download",
+                        fileId: fileId,
+                        church: church,
+                        password: hashedPass,
+                        token: token,
+                        time: time,
+                        nonce: nonce
+                    })
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        setLoadingState(false);
+                        if (data.success && data.fileData) {
+                            localStorage.setItem('failedAttempts', 0);
+                            // التحقق من نوع الملف المستلم قبل الفتح
+                            const allowedMime = [
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                'application/vnd.ms-excel',
+                                'application/octet-stream'
+                            ];
+                            if (data.mimeType && !allowedMime.includes(data.mimeType)) {
+                                showStatus('error', 'نوع الملف المستلم غير مسموح به.', 'خطأ أمني');
+                                return;
+                            }
+                            const byteCharacters = atob(data.fileData);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                            }
+                            const byteArray = new Uint8Array(byteNumbers);
+                            const blob = new Blob([byteArray], { type: data.mimeType || 'application/octet-stream' });
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = data.fileName || fileName || "report.xlsx";
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            a.remove();
+                            showStatus('success', "تم تحميل الملف بنجاح.", "اكتمل التحميل", null, 'تم التحميل');
+                        } else {
+                            if (data.message && data.message.includes("كلمة المرور خاطئة")) {
+                                recordFailedAttempt();
+                            } else {
+                                showStatus('error', sanitize(data.message || ''), "فشل التحميل", null, 'موافق');
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        setLoadingState(false);
+                        const errMsg = (err && err.name === 'AbortError')
+                            ? 'انتهت مهلة الاتصال (60 ث). يرجى المحاولة مجدداً.'
+                            : 'خطأ في الاتصال: ' + err;
+                        showStatus('error', errMsg, 'فشل الاتصال', null, 'موافق');
                     });
+            }
+
+            /* ==================== بيانات ثابتة ==================== */
+            const fixedStages = [
+                "حضانة", "أولى وثانية", "ثالثة ورابعة", "خامسة وسادسة", "إعدادى",
+                "ثانوى", "جامعة", "الخدام واعداد الخدام", "خريجين", "ديديموس",
+                "ذوى القدرات الخاصة", "قانا الجليل", "تعليم الكبار", "الصم والبكم",
+                "سمعان الشيخ", "الحرفيون"
+            ];
+
+            // ملء قائمة المراحل في صندوق البحث
+            const stageSelect = document.getElementById("searchStageInput");
+            fixedStages.forEach(s => {
+                const opt = document.createElement("option");
+                opt.value = s;
+                opt.textContent = s;
+                stageSelect.appendChild(opt);
+            });
+
+            // قائمة الكنائس (مُرتّبة)
+            const churches = [
+                "كنيسة العذراء المطرانية", "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي",
+                "العذراء و الانبا بيشوي المنية", "العذراء و الانبا موسي الخصوص", "العذراء و البابا بطرس الخانكة",
+                "العذراء و الرسولين", "العذراء و الشهدين القلج", "العذراء و الشهيد ابانوب القلج",
+                "العذراء و الشهيد ابانوب المرج الغربية", "العذراء و الملاك العكرشة", "العذراء و الملاك ميخائيل الخصوص",
+                "العذراء و مارجرجس كفر شبين", "العذراء و مارمينا الجبل الاصفر", "العذراء و ماريوحنا الخصوص",
+                "العذراء و يوسف النجار الخصوص", "كنيسة ابوسفين الخصوص", "كنيسة ابوسفين و دميانة الجبل الاصفر",
+                "كنيسة الانبا بيشوي كوم الاطرون", "كنيسة الانبا كاراس الخصوص", "كنيسة الانبا كاراس نوي",
+                "كنيسة البابا اثناسيوس الخصوص", "كنيسة البابا كيرلس كفر الدير", "كنيسة الشهيدة دميانة ميت عاصم",
+                "كنيسة الشهيدة دميانة ميت كنانة", "كنيسة الملاك القشيش", "كنيسة الملاك القلزم",
+                "كنيسة مارجرجس بلتان", "كنيسة مارجرجس طوخ", "كنيسة مارجرجس قها",
+                "كنيسة مارجرجس و البابا ديسقورس", "كنيسة مارمينا ساحل دجوي", "كنيسة مارمينا و البابا كيرلس الخصوص",
+                "مارجرجس ابو زعبل", "مارجرجس شبين القناطر", "مذبح الامير تادرس الخصوص"
+            ].sort();
+
+            // ملء datalist بالكنائس
+            const datalist = document.getElementById('churchesList');
+            churches.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                datalist.appendChild(opt);
+            });
+
+            /* ==================== وظائف مساعدة ==================== */
+
+            function sanitize(str) {
+                if (!str) return "";
+                return str.replace(/[&<>"'`=\/]/g, s => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#x60;', '=': '&#x3D;', '/': '&#x2F;'
+                })[s]);
+            }
+            function normalizeName(text) {
+                if (!text) return "";
+                return text.toString()
+                    .trim()
+                    .replace(/\s+/g, ' ')
+                    .replace(/[أإآا]/g, 'ا')
+                    .replace(/ة/g, 'ه')
+                    .replace(/ى/g, 'ي')
+                    .replace(/[ًٌٍَُِّ]/g, '');
+            }
+            async function hashPassword(password) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+
+            function setLoadingState(isLoading, message, title) {
+                const uploadBtn = document.getElementById('uploadBtn');
+                const statsBtn = document.getElementById('showStatsBtn');
+
+                if (isLoading) {
+                    showStatus('loading', message || 'جاري العمل الآن...', title);
+                    if (uploadBtn) {
+                        uploadBtn.disabled = true;
+                        uploadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                    if (statsBtn) {
+                        statsBtn.disabled = true;
+                        statsBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                } else {
+                    // نقوم بإخفاء المودال فقط إذا كان في حالة "تحميل"
+                    const overlay = document.getElementById('statusModalOverlay');
+                    const iconContainer = document.getElementById('statusIconContainer');
+                    if (overlay && !overlay.classList.contains('hidden') && iconContainer.querySelector('.loader-spinner')) {
+                        closeStatusModal();
+                    }
+
+                    if (uploadBtn) {
+                        uploadBtn.disabled = false;
+                        uploadBtn.innerHTML = "⚡ فحص ورفع البيانات";
+                        uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                    if (statsBtn) {
+                        statsBtn.disabled = false;
+                        statsBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                    showProgress(100);
+                }
+            }
+
+            // عرض رسالة نصية عادية بأمان (بدون innerHTML)
+            function setMsgContent(el, text) {
+                el.textContent = '';
+                el.style.textAlign = 'center';
+                String(text || '').split('\n').forEach((line, i) => {
+                    if (i > 0) el.appendChild(document.createElement('br'));
+                    el.appendChild(document.createTextNode(line));
+                });
+            }
+
+            // عرض قائمة أخطاء مع scroll (تُستخدم لأخطاء الشيت)
+            function setErrorList(el, intro, errors) {
+                el.textContent = '';
+                el.style.textAlign = 'right';
+
+                if (intro) {
+                    const p = document.createElement('p');
+                    p.className = 'text-gray-700 font-bold mb-3 text-center';
+                    p.textContent = intro;
+                    el.appendChild(p);
                 }
 
-                const gender = row[2]?row[2].toString().trim():"";
-                const day = parseInt(row[3]), month = parseInt(row[4]), year = parseInt(row[5]);
+                const ul = document.createElement('ul');
+                ul.className = 'space-y-2 text-sm';
+                errors.forEach(err => {
+                    const li = document.createElement('li');
+                    li.className = 'bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-red-700';
+                    li.textContent = err;
+                    ul.appendChild(li);
+                });
+                el.appendChild(ul);
+            }
 
-                if(isNaN(day)||isNaN(month)||isNaN(year)){
-                    allErrors.push(`📍 صف ${i+1} [${originalName}]: تاريخ الميلاد ناقص أو غير صحيح.`);
-                }else{
-                    const birthDate = new Date(year, month-1, day);
-                    if(day===todayDay && month===todayMonth && year===todayYear){
-                        allErrors.push(`📍 صف ${i+1} [${originalName}]: لا يمكن تسجيل تاريخ اليوم كـ ميلاد.`);
-                    }else if(birthDate>now){
-                        allErrors.push(`📍 صف ${i+1} [${originalName}]: تاريخ الميلاد في المستقبل.`);
-                    }else{
-                        let age = todayYear - year;
-                        const m = now.getMonth() - (month-1);
-                        if(m<0 || (m===0 && todayDay<day)) age--;
-                        if(age<0 || age>80){
-                            allErrors.push(`📍 صف ${i+1} [${originalName}]: العمر (${age}) خارج النطاق (0‑80).`);
+            function showStatus(type, message, customTitle, errorsList) {
+                const overlay = document.getElementById('statusModalOverlay');
+                const iconContainer = document.getElementById('statusIconContainer');
+                const title = document.getElementById('statusTitle');
+                const msg = document.getElementById('statusMessage');
+                const btn = document.getElementById('statusOkBtn');
+                const card = document.getElementById('statusModalCard');
+
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+                overlay.style.zIndex = '99999';
+
+                // Reset styles
+                btn.classList.add('hidden');
+                iconContainer.innerHTML = '';
+                title.className = "text-xl font-extrabold mb-2";
+                overlay.style.cursor = 'default';
+                msg.style.textAlign = 'center';
+
+                if (type === 'loading') {
+                    overlay.style.cursor = 'wait';
+                    iconContainer.innerHTML = '<div class="loader-spinner"></div>';
+                    title.textContent = customTitle || 'لحظة من فضلك';
+                    title.classList.add('text-blue-800');
+                    msg.textContent = message || 'جاري التحميل...';
+                    card.style.maxWidth = '';
+                } else if (type === 'success') {
+                    iconContainer.innerHTML = '<div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-4xl">✓</div>';
+                    title.textContent = customTitle || 'تم بنجاح';
+                    title.classList.add('text-green-700');
+                    setMsgContent(msg, message);
+                    btn.classList.remove('hidden');
+                    card.style.maxWidth = '';
+                } else if (type === 'error') {
+                    iconContainer.innerHTML = '<div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-4xl">✕</div>';
+                    title.textContent = customTitle || 'عذراً';
+                    title.classList.add('text-red-700');
+                    if (errorsList && Array.isArray(errorsList) && errorsList.length > 0) {
+                        // عرض كقائمة قابلة للتمرير
+                        setErrorList(msg, message, errorsList);
+                        card.style.maxWidth = '28rem'; // أعرض شوية للأخطاء
+                    } else {
+                        setMsgContent(msg, message);
+                        card.style.maxWidth = '';
+                    }
+                    btn.classList.remove('hidden');
+                }
+            }
+
+            function closeStatusModal() {
+                const overlay = document.getElementById('statusModalOverlay');
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+            /* ==================== سحب وإفلات ==================== */
+            const dropZone = document.getElementById('dropZone');
+            ['dragover', 'dragleave', 'drop'].forEach(ev => {
+                dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
+            });
+            dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+            dropZone.addEventListener('drop', e => {
+                dropZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length) {
+                    document.getElementById('fileInput').files = files;
+                    handleFileSelect(document.getElementById('fileInput'));
+                }
+            });
+
+            /* Enter للبحث */
+            ['searchNameInput', 'searchStageInput'].forEach(id => {
+                document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') searchInNames(); });
+            });
+
+            /* ==================== معالجة اختيار ملف ==================== */
+            function handleFileSelect(input) {
+                const disp = document.getElementById('fileNameDisplay');
+                if (input.files.length) {
+                    disp.textContent = "✅ الملف المختار: " + input.files[0].name;
+                    disp.classList.remove('hidden');
+                } else {
+                    disp.textContent = "";
+                    disp.classList.add('hidden');
+                }
+            }
+
+            /* ==================== إظهار/إخفاء كلمة المرور ==================== */
+            function togglePass() {
+                const p = document.getElementById('password');
+                const btn = document.getElementById('togglePassBtn');
+                if (p.type === "password") {
+                    p.type = "text";
+                    btn.textContent = "🙈 إخفاء";
+                } else {
+                    p.type = "password";
+                    btn.textContent = "👁️ عرض";
+                }
+            }
+
+            /* ==================== نافذة Modal ==================== */
+            function openModal(content) {
+                document.getElementById('modalBody').innerHTML = content;
+                document.getElementById('modalOverlay').classList.remove('hidden');
+            }
+            function closeModal() {
+                document.getElementById('modalOverlay').classList.add('hidden');
+                tempUpload = null; // مسح بيانات التحميل المؤقتة من الذاكرة
+                const btn = document.getElementById('uploadBtn');
+                if (btn) btn.disabled = false;
+            }
+            function handleOverlayClick(e) {
+                if (e.target === document.getElementById('modalOverlay')) closeModal();
+            }
+
+
+
+            /* ==================== استخراج معلومات الصفوف ==================== */
+            function getRowInfo(row) {
+                const day = row[3] || "?", month = row[4] || "?", year = row[5] || "?";
+                const activities = []; let stage = "غير محدد";
+                for (let c = 6; c <= 13; c++) {
+                    const val = row[c] ? row[c].toString().trim() : "";
+                    if (val && !val.includes("ختر")) {
+                        activities.push(val);
+                        fixedStages.forEach(fs => { if (val.includes(fs)) stage = fs; });
+                    }
+                }
+                return `<b>المرحلة:</b> ${stage} \vert  📅 <b>الميلاد:</b> ${day}/${month}/${year} <br> 🏆 <b>المسابقات:</b> ${activities.join(" ، ")}`;
+            }
+
+            /* ==================== التحقق من صحة الملف قبل الإرسال ==================== */
+            function validateFile() {
+                if (isRateLimited()) return;
+                ['churchName', 'password', 'dropZone'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.remove('error-border');
+                });
+
+                const churchInput = document.getElementById('churchName');
+                const passwordInput = document.getElementById('password');
+                const fileInput = document.getElementById('fileInput');
+                const dropZone = document.getElementById('dropZone'); // نحتاجه للهزة واللون الأحمر
+
+                const church = sanitize(churchInput.value);
+                const password = passwordInput.value.trim(); // لا نعقّم كلمة المرور لأنها ستُشفّر بـ SHA-256
+                const file = fileInput.files[0];
+
+                let hasError = false;
+                let errorsList = [];
+
+                if (!church || !churches.includes(church)) {
+                    churchInput.classList.add('shake-error', 'error-border');
+                    setTimeout(() => churchInput.classList.remove('shake-error'), 500);
+                    churchInput.oninput = () => churchInput.classList.remove('error-border');
+                    hasError = true;
+                    if (!church) errorsList.push("اختيار الكنيسة");
+                    else errorsList.push("اختيار كنيسة صحيحة من القائمة");
+                }
+                if (!password || password.length < 4) {
+                    passwordInput.classList.add('shake-error', 'error-border');
+                    setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
+                    passwordInput.oninput = () => passwordInput.classList.remove('error-border');
+                    hasError = true;
+                    if (!password) errorsList.push("إدخال كلمة المرور");
+                    else errorsList.push("أن تكون كلمة المرور 4 أحرف كحد أدنى");
+                }
+                if (!file) {
+                    dropZone.classList.add('shake-error', 'error-border');
+                    setTimeout(() => dropZone.classList.remove('shake-error'), 500);
+                    fileInput.addEventListener('change', () => dropZone.classList.remove('error-border'), { once: true });
+                    hasError = true;
+                    errorsList.push("إرفاق ملف الإكسيل");
+                }
+
+                if (hasError) {
+                    showStatus('error', "يرجى التأكد من: " + errorsList.join("، و") + ".", "خطأ في البيانات", null, 'مراجعة البيانات');
+                    return;
+                }
+
+                // تحقق من نوع وحجم الملف
+                const allowedTypes = [
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "application/vnd.ms-excel"
+                ];
+                const fileName = file.name;
+                const validExt = /\.(xlsx|xls)$/i.test(fileName);
+                const validChars = /^[^\\\/:*?"<>|]+$/.test(fileName.split('.').slice(0, -1).join('.'));
+
+                if (!validExt || !validChars) {
+                    dropZone.classList.add('shake-error');
+                    setTimeout(() => dropZone.classList.remove('shake-error'), 500);
+                    showStatus('error', "اسم الملف غير صالح. يرجى التأكد من أن الاسم لا يحتوي على رموز ممنوعة (مثل / \\ : * ? < > |) وينتهي بـ .xlsx أو .xls", "اسم ملف غير صالح", null, 'تغيير اسم الملف');
+                    return;
+                }
+                const validType = allowedTypes.includes(file.type) || file.type === '';
+                if (!validExt || !validType || file.size > 5 * 1024 * 1024) {
+                    dropZone.classList.add('shake-error');
+                    setTimeout(() => dropZone.classList.remove('shake-error'), 500);
+
+                    showStatus('error', "نوع أو حجم الملف غير مقبول. يُسمح فقط بملفات XLSX/XLS حتى 5 مB.", "ملف غير مقبول", null, 'تغيير الملف');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
+                        const sheetName = wb.SheetNames[0];
+                        const sheet = wb.Sheets[sheetName];
+                        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                        if (typeof checkData === "function") {
+                            checkData(rows, password, church, file);
+                        } else {
+                            console.error("دالة checkData غير معرفة!");
+                        }
+                    } catch (err) {
+                        console.error("حدث خطأ تقني:", err);
+                        showStatus('error', "فشل في معالجة الملف: " + sanitize(err.message || ''), "خطأ فني", null, 'حسناً');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            /* ==================== فحص البيانات داخل الملف ==================== */
+            function checkData(rows, password, churchName, fileObject) {
+                const allErrors = [], nameInfo = {}, internalDuplicates = [], descriptionData = [];
+                const currentFileLevels = {}, now = new Date();
+                const todayDay = now.getDate(), todayMonth = now.getMonth() + 1, todayYear = now.getFullYear();
+                let validCount = 0;
+
+                for (let i = 2; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || row.length === 0) continue;
+
+                    const originalName = row[0] ? row[0].toString().trim().replace(/\s+/g, ' ') : "";
+                    if (!originalName) continue;
+
+                    const cleanName = normalizeName(originalName);
+                    const currentRowDetails = getRowInfo(row);
+
+                    // منطق التكرار (اسم + مرحلة)
+                    const rowStages = [];
+                    for (let c = 6; c <= 13; c++) {
+                        const val = row[c] ? row[c].toString().trim() : "";
+                        fixedStages.forEach(fs => { if (val.includes(fs) && !rowStages.includes(fs)) rowStages.push(fs); });
+                    }
+                    const mainStage = rowStages[0] || "غير محدد";
+                    const dupKey = `${cleanName}\vert ${mainStage}`;
+
+                    if (!nameInfo[dupKey]) {
+                        nameInfo[dupKey] = { name: originalName, rowNum: i + 1, info: currentRowDetails };
+                    } else {
+                        internalDuplicates.push({
+                            name: originalName,
+                            currentRow: i + 1,
+                            currentInfo: currentRowDetails,
+                            prevRow: nameInfo[dupKey].rowNum,
+                            prevInfo: nameInfo[dupKey].info
+                        });
+                    }
+
+                    const gender = row[2] ? row[2].toString().trim() : "";
+                    const day = parseInt(row[3]), month = parseInt(row[4]), year = parseInt(row[5]);
+
+                    if (isNaN(day) || isNaN(month) || isNaN(year)) {
+                        allErrors.push(`📍 صف ${i + 1} [${originalName}]: تاريخ الميلاد ناقص أو غير صحيح.`);
+                    } else {
+                        const birthDate = new Date(year, month - 1, day);
+                        if (day === todayDay && month === todayMonth && year === todayYear) {
+                            allErrors.push(`📍 صف ${i + 1} [${originalName}]: لا يمكن تسجيل تاريخ اليوم كـ ميلاد.`);
+                        } else if (birthDate > now) {
+                            allErrors.push(`📍 صف ${i + 1} [${originalName}]: تاريخ الميلاد في المستقبل.`);
+                        } else {
+                            let age = todayYear - year;
+                            const m = now.getMonth() - (month - 1);
+                            if (m < 0 || (m === 0 && todayDay < day)) age--;
+                            if (age < 0 || age > 80) {
+                                allErrors.push(`📍 صف ${i + 1} [${originalName}]: العمر (${age}) خارج النطاق (0‑80).`);
+                            }
                         }
                     }
-                }
 
-                const activities = [], rowStages2 = [];
-                const firstAct = row[6]?row[6].toString().trim():"";
-                if(!firstAct || firstAct.includes("اختر المرحلة")){
-                    allErrors.push(`📍 صف ${i+1} [${originalName}]: يجب اختيار مسابقة في الخانة الأولى.`);
-                }
-
-                for(let c=6;c<=13;c++){
-                    const val = row[c]?row[c].toString().trim():"";
-                    if(val && !val.includes("ختر")){
-                        activities.push(val);
-                        fixedStages.forEach(fs=>{if(val.includes(fs) && !rowStages2.includes(fs)) rowStages2.push(fs);});
+                    const activities = [], rowStages2 = [];
+                    const firstAct = row[6] ? row[6].toString().trim() : "";
+                    if (!firstAct || firstAct.includes("اختر المرحلة")) {
+                        allErrors.push(`📍 صف ${i + 1} [${originalName}]: يجب اختيار مسابقة في الخانة الأولى.`);
                     }
+
+                    for (let c = 6; c <= 13; c++) {
+                        const val = row[c] ? row[c].toString().trim() : "";
+                        if (val && !val.includes("ختر")) {
+                            activities.push(val);
+                            fixedStages.forEach(fs => { if (val.includes(fs) && !rowStages2.includes(fs)) rowStages2.push(fs); });
+                        }
+                    }
+
+                    if (rowStages2.length > 1) allErrors.push(`📍 صف ${i + 1}: تداخل مراحل (${rowStages2.join(" و ")}).`);
+                    if (originalName.split(" ").filter(p => p).length < 3) allErrors.push(`📍 صف ${i + 1}: الاسم ليس ثلاثياً.`);
+                    if (gender !== "ذكر" && gender !== "انثى") allErrors.push(`📍 صف ${i + 1}: لم يتم تحديد النوع.`);
+                    if (!activities[0]) allErrors.push(`📍 صف ${i + 1}: لم يتم اختيار مسابقة.`);
+
+                    descriptionData.push(`${originalName}*${activities.join(" ، ")}*${day}/${month}/${year}`);
+                    const mainStage2 = rowStages2[0] || "غير محدد";
+                    currentFileLevels[mainStage2] = (currentFileLevels[mainStage2] || 0) + 1;
+                    validCount++;
                 }
 
-                if(rowStages2.length>1) allErrors.push(`📍 صف ${i+1}: تداخل مراحل (${rowStages2.join(" و ")}).`);
-                if(originalName.split(" ").filter(p=>p).length<3) allErrors.push(`📍 صف ${i+1}: الاسم ليس ثلاثياً.`);
-                if(gender!=="ذكر" && gender!=="انثى") allErrors.push(`📍 صف ${i+1}: لم يتم تحديد النوع.`);
-                if(!activities[0]) allErrors.push(`📍 صف ${i+1}: لم يتم اختيار مسابقة.`);
+                if (allErrors.length) {
+                    showStatus('error', `⚠️ يوجد ${allErrors.length} خطأ في الشيت، يرجى المراجعة:`, "أخطاء في الشيت", allErrors, 'مراجعة الشيت');
+                    return;
+                }
 
-                descriptionData.push(`${originalName}*${activities.join(" ، ")}*${day}/${month}/${year}`);
-                const mainStage2 = rowStages2[0]||"غير محدد";
-                currentFileLevels[mainStage2] = (currentFileLevels[mainStage2]||0)+1;
-                validCount++;
+                if (internalDuplicates.length) {
+                    showInternalDuplicateModal(internalDuplicates, fileObject, password, churchName, validCount, currentFileLevels, descriptionData.join("\n"));
+                    return;
+                }
+
+                uploadNow(fileObject, password, churchName, validCount, currentFileLevels, descriptionData.join("\n"), false, false);
             }
 
-            if(allErrors.length){
-                showStatus('error', "أخطاء في البيانات:<br>" + allErrors.join("<br>"), "أخطاء في الشيت");
-                return;
-            }
-
-            if(internalDuplicates.length){
-                showInternalDuplicateModal(internalDuplicates, fileObject, password, churchName, validCount, currentFileLevels, descriptionData.join("\n"));
-                return;
-            }
-
-            uploadNow(fileObject, password, churchName, validCount, currentFileLevels, descriptionData.join("\n"), false, false);
-        }
-
-        /* ==================== عرض تكرارات داخل الملف ==================== */
-        function showInternalDuplicateModal(dups, file, password, churchName, count, levels, desc){
-            const report = dups.map(dup=>`
+            /* ==================== عرض تكرارات داخل الملف ==================== */
+            function showInternalDuplicateModal(dups, file, password, churchName, count, levels, desc) {
+                const report = dups.map(dup => `
                 <div class="border-r-4 border-red-600 bg-red-50 p-4 mb-4 rounded-lg">
                     <div class="font-bold text-gray-800 mb-2 flex items-center gap-2">
                         👤 <span>${sanitize(dup.name)}</span>
@@ -759,9 +1006,9 @@ reader.readAsArrayBuffer(file);
                 </div>
             `).join('');
 
-            tempUpload = {file,password,churchName,count,levels,desc};
+                tempUpload = { file, password, churchName, count, levels, desc };
 
-            openModal(`
+                openModal(`
                 <h3 class="text-red-800 text-xl font-bold mb-4 text-center">🚨 تكرار داخل ملف الإكسيل</h3>
                 <p class="text-center text-gray-600 mb-4">الأسماء التالية مكررة داخل الشيت. راجع (المرحلة، الميلاد، والمسابقات):</p>
                 <div class="max-h-[400px] overflow-y-auto p-2 border border-gray-200 rounded mb-4">${report}</div>
@@ -771,63 +1018,60 @@ reader.readAsArrayBuffer(file);
                     <button class="bg-gray-600 text-white px-4 py-2 rounded hover:opacity-90" onclick="closeModal()">إلغاء</button>
                 </div>
             `);
-        }
+            }
 
-        /* ==================== رفع الملف إلى الخادم ==================== */
-        async function uploadNow(file,password,churchName,count,levels,desc,ignoreInternal=false,ignoreExternal=false){
-         setLoadingState(true, "جاري رفع ومعالجة البيانات…", "جاري الرفع");
-            const btn = document.getElementById('uploadBtn');
-            if(btn) btn.disabled = true;
+            /* ==================== رفع الملف إلى الخادم ==================== */
+            async function uploadNow(file, password, churchName, count, levels, desc, ignoreInternal = false, ignoreExternal = false) {
+                setLoadingState(true, "جاري رفع ومعالجة البيانات…", "جاري الرفع");
+                const btn = document.getElementById('uploadBtn');
+                if (btn) btn.disabled = true;
 
-            const hashedPassword = await hashPassword(password);
-            const reader = new FileReader();
-           reader.onload = async e => {
-                const base64 = e.target.result.split(',')[1];
-                const time = Date.now();
-                const nonce = generateNonce();
-                const token = await generateToken(churchName, "upload", time, nonce, hashedPassword);
-               fetch(WEB_APP_URL, {
-    method: 'POST',
-    body: JSON.stringify({
-        action: "upload",
-        church: churchName,
-        password: hashedPassword,
-        fileData: base64,
-        fileName: file.name,
-        count: count,
-        levels: levels,
-        description: desc,
-        ignoreInternal: ignoreInternal,
-        ignoreExternal: ignoreExternal,
-        token: token,
-        time: time,
-        nonce: nonce
-    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    setLoadingState(false);
+                const hashedPassword = await hashPassword(password);
+                const reader = new FileReader();
+                reader.onload = async e => {
+                    const base64 = e.target.result.split(',')[1];
+                    const time = Date.now();
+                    const nonce = generateNonce();
+                    const token = await generateToken(churchName, "upload", time, nonce, hashedPassword);
+                    fetchWithTimeout(WEB_APP_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: "upload",
+                            church: churchName,
+                            password: hashedPassword,
+                            fileData: base64,
+                            fileName: file.name,
+                            count: count,
+                            levels: levels,
+                            description: desc,
+                            ignoreInternal: ignoreInternal,
+                            ignoreExternal: ignoreExternal,
+                            token: token,
+                            time: time,
+                            nonce: nonce
+                        })
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            setLoadingState(false);
 
-                    if (data.success) {
-                        // 1. إعادة تفعيل الزر وتصفير الحقول
-                        if (btn) btn.disabled = false;
-                        document.getElementById('fileNameDisplay').textContent = "";
-                        document.getElementById('fileInput').value = "";
-
-                        // 2. فتح مودال النجاح
-                        showStatus('success', data.message || "تم رفع البيانات بنجاح", "تم الرفع");
-                        fetchMyFiles();
-                  }else if(data.duplicate){
-                 setLoadingState(false); // ✅ هنا
-                        // معالجة تكرار في قاعدة البيانات (نفس المنطق السابق)
-                        const duplicateRows = data.message.split('--------------------------------------').filter(i=>i.trim()!=='');
-                        const report = duplicateRows.map(item=>{
-                            const lines = item.split('\n').map(l=>l.trim()).filter(l=>l!=='');
-                            const nameLine = lines.find(l=>l.includes("الاسم")||l.includes("👤"))||lines[0]||"اسم غير معروف";
-                            const name = nameLine.replace(/📍/g, '').replace(/الاسم:/g, '').replace(/👤/g, '').replace(/⚠️/g, '').replace(/مكرر/g, '').replace(/\[تكرار داخلي بالملف\]/g, '').replace(/\[تكرار خارجي بالسيرفر\]/g, '').trim();
-                            const newLine = lines.find(l=>l.includes("الجديد"))||"";
-                            const oldLine = lines.find(l=>l.includes("السابق")||l.includes("المسجل")||l.includes("القديم"))||"";
-                            return `
+                            if (data.success) {
+                                localStorage.setItem('failedAttempts', 0);
+                                if (btn) btn.disabled = false;
+                                document.getElementById('fileNameDisplay').textContent = "";
+                                document.getElementById('fileInput').value = "";
+                                showStatus('success', "✅ تم رفع الشيت وحفظ البيانات بنجاح.", "✅ تم الرفع بنجاح", null, 'تم الرفع');
+                                fetchMyFiles();
+                            } else if (data.duplicate) {
+                                localStorage.setItem('failedAttempts', 0);
+                                const duplicateRows = data.message.split('--------------------------------------').filter(i => i.trim() !== '');
+                                const report = duplicateRows.map(item => {
+                                    const lines = item.split('\n').map(l => l.trim()).filter(l => l !== '');
+                                    const nameLine = lines.find(l => l.includes("الاسم") || l.includes("👤")) || lines[0] || "اسم غير معروف";
+                                    const name = nameLine.replace(/📍/g, '').replace(/الاسم:/g, '').replace(/👤/g, '').replace(/⚠️/g, '').replace(/مكرر/g, '').replace(/\[تكرار داخلي بالملف\]/g, '').replace(/\[تكرار خارجي بالسيرفر\]/g, '').trim();
+                                    const newLine = lines.find(l => l.includes("الجديد")) || "";
+                                    const oldLine = lines.find(l => l.includes("السابق") || l.includes("المسجل") || l.includes("القديم")) || "";
+                                    return `
                                 <div class="border-r-4 border-red-600 bg-red-50 p-4 mb-4 rounded-lg">
                                     <div class="font-bold text-gray-800 mb-2 flex items-center gap-2">
                                         👤 <span class="text-red-600">${sanitize(name)}</span>
@@ -842,11 +1086,11 @@ reader.readAsArrayBuffer(file);
                                     </div>
                                 </div>
                             `;
-                        }).join('');
+                                }).join('');
 
-                        tempUpload = {file,password,churchName,count,levels,desc};
+                                tempUpload = { file, password, churchName, count, levels, desc };
 
-                        openModal(`
+                                openModal(`
                             <h3 class="text-red-800 text-xl font-bold mb-4 text-center">🚨 مراجعة التكرار (قاعدة البيانات)</h3>
                             <p class="text-center text-gray-600 mb-4">الأسماء التالية مسجلة مسبقاً في قاعدة البيانات:</p>
                             <div class="max-h-[400px] overflow-y-auto p-2 border border-gray-200 rounded mb-4">${report}</div>
@@ -856,134 +1100,147 @@ reader.readAsArrayBuffer(file);
                                 <button class="bg-gray-600 text-white px-4 py-2 rounded hover:opacity-90" onclick="closeModal()">إلغاء</button>
                             </div>
                         `);
-                   }else{
-                   setLoadingState(false); // ✅ فك القفل هنا
-
-                if(btn) btn.disabled = false;
-               showStatus('error', sanitize(data.message||''), "فشل الرفع");
-}
-                })
-                .catch(err=>{
-                    if(btn) btn.disabled = false;
-                    showMessage("❌ خطأ اتصال: "+err, "error");
-                });
-            };
-            if(file instanceof File){
-                reader.readAsDataURL(file);
-            }else if(tempUpload && tempUpload.file instanceof File){
-                const originalFile = tempUpload.file;
-                const originalReader = new FileReader();
-                originalReader.onload = async e=>{
-                    const base64 = e.target.result.split(',')[1];
-                    const t2 = Date.now(), n2 = generateNonce();
-                    const hp2 = await hashPassword(password);
-                    const tok2 = await generateToken(churchName, "upload", t2, n2, hp2);
-                    fetch(WEB_APP_URL,{
-                        method:'POST',
-                        body:JSON.stringify({
-                            action:"upload",
-                            fileName:originalFile.name,
-                            fileData:base64,
-                            church:churchName,
-                            password:hp2,
-                            count:count,
-                            levels:levels,
-                            description:desc,
-                            ignoreInternal:ignoreInternal,
-                            ignoreExternal:ignoreExternal,
-                            token:tok2,
-                            time:t2,
-                            nonce:n2
+                            } else {
+                                if (data.message && data.message.includes("كلمة المرور خاطئة")) {
+                                    recordFailedAttempt();
+                                } else {
+                                    showStatus('error', sanitize(data.message || 'فشل رفع الملف. يرجى التحقق من البيانات والمحاولة مرة أخرى.'), "❌ فشل الرفع — حاول مرة أخرى", null, 'موافق');
+                                }
+                                if (btn) btn.disabled = false;
+                            }
                         })
-                    })
-                    .then(r=>r.json())
-                    .then(data=>{
-                        if(btn) btn.disabled = false;
-                        setLoadingState(false);
-                        if(data.success){
-                            closeModal();
-                            document.getElementById('fileNameDisplay').textContent="";
-                            document.getElementById('fileInput').value="";
-                            showStatus('success', "تم الرفع بنجاح!", "تم الرفع");
-                            fetchMyFiles();
-                        }else{
-                            showStatus('error', sanitize(data.message||''), "فشل الرفع");
-                        }
-                    })
-                    .catch(err=>showStatus('error', "خطأ اتصال: "+err, "فشل الاتصال"));
+                        .catch(err => {
+                            setLoadingState(false);
+                            if (btn) btn.disabled = false;
+                            const m = (err && err.name === 'AbortError')
+                                ? 'انتهت مهلة الاتصال (60 ثانية). تحقق من الإنترنت وحاول مرة أخرى.'
+                                : 'حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.';
+                            showStatus('error', m, '❌ فشل الاتصال — حاول مرة أخرى', null, 'موافق');
+                        });
                 };
-                originalReader.readAsDataURL(originalFile);
+                if (file instanceof File) {
+                    reader.readAsDataURL(file);
+                } else if (tempUpload && tempUpload.file instanceof File) {
+                    const originalFile = tempUpload.file;
+                    const originalReader = new FileReader();
+                    originalReader.onload = async e => {
+                        const base64 = e.target.result.split(',')[1];
+                        const t2 = Date.now(), n2 = generateNonce();
+                        const hp2 = await hashPassword(password);
+                        const tok2 = await generateToken(churchName, "upload", t2, n2, hp2);
+                        fetchWithTimeout(WEB_APP_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: "upload",
+                                fileName: originalFile.name,
+                                fileData: base64,
+                                church: churchName,
+                                password: hp2,
+                                count: count,
+                                levels: levels,
+                                description: desc,
+                                ignoreInternal: ignoreInternal,
+                                ignoreExternal: ignoreExternal,
+                                token: tok2,
+                                time: t2,
+                                nonce: n2
+                            })
+                        })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (btn) btn.disabled = false;
+                                setLoadingState(false);
+                                if (data.success) {
+                                    localStorage.setItem('failedAttempts', 0);
+                                    closeModal();
+                                    document.getElementById('fileNameDisplay').textContent = "";
+                                    document.getElementById('fileInput').value = "";
+                                    showStatus('success', "✅ تم رفع الشيت وحفظ البيانات بنجاح.", "تم الرفع بنجاح");
+                                    fetchMyFiles();
+                                } else {
+                                    if (data.message && data.message.includes("كلمة المرور خاطئة")) {
+                                        recordFailedAttempt();
+                                    } else {
+                                    showStatus('error', sanitize(data.message || ''), "فشل الرفع", null, 'موافق');
+                                }
+                            }
+                            })
+                            .catch(err => showStatus('error', (err && err.name === 'AbortError') ? 'انتهت مهلة الاتصال.' : 'خطأ في الاتصال: ' + err, 'فشل الاتصال'));
+                    };
+                    originalReader.readAsDataURL(originalFile);
+                }
             }
-        }
 
-        function confirmIgnore(ignoreExternal=false){
-            const d = tempUpload;
-            tempUpload = null;
-            closeModal();
-            uploadNow(d.file,d.password,d.churchName,d.count,d.levels,d.desc,true,ignoreExternal);
-        }
-
-        /* ==================== جلب السجل والإحصائيات ==================== */
-        let cachedFiles = [];
-        async function fetchMyFiles(){
-            ['churchName', 'password', 'dropZone'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.classList.remove('error-border');
-            });
-
-            const churchInput = document.getElementById('churchName');
-            const passwordInput = document.getElementById('password');
-            const church = sanitize(churchInput.value);
-            const pass = passwordInput.value.trim();
-
-            let hasError = false;
-            let errorsList = [];
-
-            if(!church || !churches.includes(church)){
-                churchInput.classList.add('shake-error', 'error-border');
-                setTimeout(() => churchInput.classList.remove('shake-error'), 500);
-                churchInput.oninput = () => churchInput.classList.remove('error-border');
-                hasError = true;
-                if(!church) errorsList.push("اختيار الكنيسة");
-                else errorsList.push("اختيار كنيسة صحيحة من القائمة");
-            }
-            if(!pass || pass.length < 4){
-                passwordInput.classList.add('shake-error', 'error-border');
-                setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
-                passwordInput.oninput = () => passwordInput.classList.remove('error-border');
-                hasError = true;
-                if(!pass) errorsList.push("إدخال كلمة المرور");
-                else errorsList.push("أن تكون كلمة المرور 4 أحرف كحد أدنى");
+            function confirmIgnore(ignoreExternal = false) {
+                const d = tempUpload;
+                tempUpload = null;
+                closeModal();
+                uploadNow(d.file, d.password, d.churchName, d.count, d.levels, d.desc, true, ignoreExternal);
             }
 
-            if(hasError){
-                showStatus('error', "لعرض السجل، يرجى التأكد من: " + errorsList.join("، و") + ".", "بيانات ناقصة");
-                return;
-            }
-            setLoadingState(true, "جاري جلب البيانات وتحديث السجل…", "جاري التحديث");
-            showProgress(30);
-            const hashedPass = await hashPassword(pass);
-            const time = Date.now(), nonce = generateNonce();
-            const token = await generateToken(church, "fetch", time, nonce, hashedPass);
-            fetch(WEB_APP_URL,{
-                method:'POST',
-                body:JSON.stringify({action:"fetch",church:church,password:hashedPass,time:time,nonce:nonce,token:token})
-            })
-            .then(r=>r.json())
-            .then(data=>{
-                if(data.success){
-                    cachedFiles = data.files||[];
-                    let html = "", total=0, stageStats={};
-                    fixedStages.forEach(s=>stageStats[s]=0);
-                    if(cachedFiles.length === 0){
-                        html = `<tr><td colspan="4" class="p-4 text-center text-gray-400">📂 لا توجد ملفات مرفوعة بعد.</td></tr>`;
-                    }
-                    cachedFiles.forEach(f=>{
-                        const safeName = sanitize(f.name||'');
-                        const safeId   = sanitize(f.id||'');
-                        const safeCount= parseInt(f.count||0);
-                        const safeDate = sanitize(f.date||'');
-                        html+=`<tr>
+            /* ==================== جلب السجل والإحصائيات ==================== */
+            let cachedFiles = [];
+            async function fetchMyFiles() {
+                if (isRateLimited()) return;
+                ['churchName', 'password', 'dropZone'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.remove('error-border');
+                });
+
+                const churchInput = document.getElementById('churchName');
+                const passwordInput = document.getElementById('password');
+                const church = sanitize(churchInput.value);
+                const pass = passwordInput.value.trim();
+
+                let hasError = false;
+                let errorsList = [];
+
+                if (!church || !churches.includes(church)) {
+                    churchInput.classList.add('shake-error', 'error-border');
+                    setTimeout(() => churchInput.classList.remove('shake-error'), 500);
+                    churchInput.oninput = () => churchInput.classList.remove('error-border');
+                    hasError = true;
+                    if (!church) errorsList.push("اختيار الكنيسة");
+                    else errorsList.push("اختيار كنيسة صحيحة من القائمة");
+                }
+                if (!pass || pass.length < 4) {
+                    passwordInput.classList.add('shake-error', 'error-border');
+                    setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
+                    passwordInput.oninput = () => passwordInput.classList.remove('error-border');
+                    hasError = true;
+                    if (!pass) errorsList.push("إدخال كلمة المرور");
+                    else errorsList.push("أن تكون كلمة المرور 4 أحرف كحد أدنى");
+                }
+
+                if (hasError) {
+                    showStatus('error', "لعرض السجل، يرجى التأكد من: " + errorsList.join("، و") + ".", "بيانات ناقصة", null, 'مراجعة البيانات');
+                    return;
+                }
+                setLoadingState(true, "جاري جلب البيانات وتحديث السجل…", "جاري التحديث");
+                showProgress(30);
+                const hashedPass = await hashPassword(pass);
+                const time = Date.now(), nonce = generateNonce();
+                const token = await generateToken(church, "fetch", time, nonce, hashedPass);
+                fetchWithTimeout(WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "fetch", church: church, password: hashedPass, time: time, nonce: nonce, token: token })
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            localStorage.setItem('failedAttempts', 0); // تصفير المحاولات عند النجاح
+                            cachedFiles = data.files || [];
+                            let html = "", total = 0, stageStats = {};
+                            fixedStages.forEach(s => stageStats[s] = 0);
+                            if (cachedFiles.length === 0) {
+                                html = `<tr><td colspan="4" class="p-4 text-center text-gray-400">📂 لا توجد ملفات مرفوعة بعد.</td></tr>`;
+                            }
+                            cachedFiles.forEach(f => {
+                                const safeName = sanitize(f.name || '');
+                                const safeId = sanitize(f.id || '');
+                                const safeCount = parseInt(f.count || 0);
+                                const safeDate = sanitize(f.date || '');
+                                html += `<tr>
                             <td class="p-3 border-b border-gray-200 text-right">${safeName}</td>
                             <td class="p-3 border-b border-gray-200 text-right"><b>${safeCount}</b></td>
                             <td class="p-3 border-b border-gray-200 text-right">${safeDate}</td>
@@ -998,73 +1255,77 @@ reader.readAsArrayBuffer(file);
     </button>
 </td>
                         </tr>`;
-                        total+=safeCount;
-                        if(f.levels){
-                            Object.keys(f.levels).forEach(k=>{
-                                fixedStages.forEach(fs=>{if(k.includes(fs)) stageStats[fs]+=parseInt(f.levels[k]);});
+                                total += safeCount;
+                                if (f.levels) {
+                                    Object.keys(f.levels).forEach(k => {
+                                        fixedStages.forEach(fs => { if (k.includes(fs)) stageStats[fs] += parseInt(f.levels[k]); });
+                                    });
+                                }
                             });
+                            document.getElementById('filesTableBody').innerHTML = html;
+                            document.getElementById('totalChurchCount').textContent = total;
+
+                            let statsHtml = "";
+                            fixedStages.forEach(s => {
+                                const c = stageStats[s];
+                                statsHtml += `<div class="stat-card p-2 border border-gray-200 rounded ${c > 0 ? 'has-count' : 'opacity-50'}">${sanitize(s)}: ${c}</div>`;
+                            });
+                            document.getElementById('statsGrid').innerHTML = statsHtml;
+                            document.getElementById('statsCard').classList.remove('hidden');
+                            document.getElementById('historySection').classList.remove('hidden');
+                            document.getElementById('searchBox').classList.remove('hidden');
+                            showProgress(100);
+                            showStatus('success', '📋 تم تحديث البيانات وعرض السجل بنجاح.', "تم تحديث البيانات", null, 'تم التحديث');
+                        } else {
+                            if (data.message && data.message.includes("كلمة المرور خاطئة")) {
+                                recordFailedAttempt();
+                            } else {
+                                showStatus('error', sanitize(data.message || 'خطأ في جلب البيانات'));
+                            }
                         }
+                        setLoadingState(false);
+                    })
+                    .catch(err => {
+                        const m = (err && err.name === 'AbortError') ? 'انتهت مهلة الاتصال (60 ث).' : 'خطأ اتصال: ' + err;
+                        showStatus('error', m, 'فشل التحديث', null, 'موافق');
+                        setLoadingState(false);
                     });
-                    document.getElementById('filesTableBody').innerHTML=html;
-                    document.getElementById('totalChurchCount').textContent=total;
+            }
 
-                    let statsHtml="";
-                    fixedStages.forEach(s=>{
-                        const c=stageStats[s];
-                        statsHtml+=`<div class="stat-card p-2 border border-gray-200 rounded ${c>0?'has-count':'opacity-50'}">${sanitize(s)}: ${c}</div>`;
-                    });
-                    document.getElementById('statsGrid').innerHTML=statsHtml;
-                    document.getElementById('statsCard').classList.remove('hidden');
-                    document.getElementById('historySection').classList.remove('hidden');
-                    document.getElementById('searchBox').classList.remove('hidden');
-                    document.getElementById('messageBox').classList.add('hidden');
-                    showProgress(100);
-                    showStatus('success', 'تم جلب البيانات وتحديث السجل بنجاح.', "تم التحديث");
-                }else{
-                    showStatus('error', sanitize(data.message||'خطأ في جلب البيانات'));
-                }
-                setLoadingState(false);
-            })
-            .catch(err => {
-                showStatus('error', "خطأ اتصال: " + err, "فشل التحديث");
-                setLoadingState(false);
-            });
-        }
+            /* تم استبدال دالة downloadFile بدالة downloadReportSecure الآمنة الموجودة بالأعلى */
 
-        /* تم استبدال دالة downloadFile بدالة downloadReportSecure الآمنة الموجودة بالأعلى */
+            /* ==================== بحث داخل السجل ==================== */
+            function searchInNames() {
+                const n = normalizeName(document.getElementById('searchNameInput').value);
+                const s = document.getElementById('searchStageInput').value;
+                const resDiv = document.getElementById('searchResults');
+                if (!n && !s) { resDiv.innerHTML = ""; return; }
 
-        /* ==================== بحث داخل السجل ==================== */
-        function searchInNames(){
-            const n = normalizeName(document.getElementById('searchNameInput').value);
-            const s = document.getElementById('searchStageInput').value;
-            const resDiv = document.getElementById('searchResults');
-            if(!n && !s){ resDiv.innerHTML=""; return; }
-
-            let html="", found=false;
-            cachedFiles.forEach(f=>{
-                if(f.description){
-                    f.description.split("\n").forEach(line=>{
-                        if(!line.trim()) return;
-                        const normalizedLine = normalizeName(line);
-                        if((!n || normalizedLine.includes(n)) && (!s || line.includes(s))){
-                            found=true;
-                            const parts = line.split("*");
-                            html+=`<div class="result-card border border-gray-200 rounded p-3 mb-3">
-                                👤 <b>${sanitize(parts[0]||'')}</b><br>
-                                <span class="text-green-700 text-sm">🏆 ${sanitize(parts[1]||'')}</span><br>
-                                <span class="text-gray-600 text-xs">📅 ${sanitize(parts[2]||'')}</span><br>
-                                <small class="text-gray-500 block mt-1 border-t border-dashed pt-1">📁 ${sanitize(f.name||'')}</small>
+                let html = "", found = false;
+                cachedFiles.forEach(f => {
+                    if (f.description) {
+                        f.description.split("\n").forEach(line => {
+                            if (!line.trim()) return;
+                            const normalizedLine = normalizeName(line);
+                            if ((!n || normalizedLine.includes(n)) && (!s || line.includes(s))) {
+                                found = true;
+                                const parts = line.split("*");
+                                html += `<div class="result-card border border-gray-200 rounded p-3 mb-3">
+                                👤 <b>${sanitize(parts[0] || '')}</b><br>
+                                <span class="text-green-700 text-sm">🏆 ${sanitize(parts[1] || '')}</span><br>
+                                <span class="text-gray-600 text-xs">📅 ${sanitize(parts[2] || '')}</span><br>
+                                <small class="text-gray-500 block mt-1 border-t border-dashed pt-1">📁 ${sanitize(f.name || '')}</small>
                             </div>`;
-                        }
-                    });
-                }
-            });
-            resDiv.innerHTML = found ? html : "<p class='text-red-600 text-center text-sm'>🚫 لا توجد نتائج مطابقة.</p>";
-        }
+                            }
+                        });
+                    }
+                });
+                resDiv.innerHTML = found ? html : "<p class='text-red-600 text-center text-sm'>🚫 لا توجد نتائج مطابقة.</p>";
+            }
 
-        /* ==================== حذف ملف ==================== */
-        function showDel(id,name){
-            openModal(`
+            /* ==================== حذف ملف ==================== */
+            function showDel(id, name) {
+                openModal(`
                 <h3 class="text-red-800 text-xl font-bold mb-4 text-center">⚠️ تأكيد حذف ملف</h3>
                 <p class="text-center mb-4">هل أنت متأكد من حذف الملف <b>${sanitize(name)}</b> نهائياً؟</p>
                 <div class="flex justify-center gap-4">
@@ -1072,50 +1333,60 @@ reader.readAsArrayBuffer(file);
                     <button class="bg-gray-600 text-white px-4 py-2 rounded hover:opacity-90" onclick="closeModal()">إلغاء</button>
                 </div>
             `);
-        }
-     async function execDel(id){
-    closeModal();
+            }
+            async function execDel(id) {
+                if (isRateLimited()) return;
+                closeModal();
 
-    const church = sanitize(document.getElementById('churchName').value);
-    const pass = document.getElementById('password').value; // لا نعقّم قبل التشفير
+                const church = sanitize(document.getElementById('churchName').value);
+                const pass = document.getElementById('password').value; // لا نعقّم قبل التشفير
 
-    // 🔐 تشفير الباسورد
-    const hashedPass = await hashPassword(pass);
+                // 🔐 تشفير الباسورد
+                const hashedPass = await hashPassword(pass);
 
-    // 🔐 توليد بيانات الأمان
-    const time = Date.now();
-    const nonce = generateNonce();
-    const token = await generateToken(church, "delete", time, nonce, hashedPass);
+                // 🔐 توليد بيانات الأمان
+                const time = Date.now();
+                const nonce = generateNonce();
+                const token = await generateToken(church, "delete", time, nonce, hashedPass);
 
-    setLoadingState(true, "جاري حذف الملف نهائياً…", "جاري الحذف");
+                setLoadingState(true, "جاري حذف الملف نهائياً…", "جاري الحذف");
 
-    fetch(WEB_APP_URL,{
-        method:'POST',
-      body: JSON.stringify({
-    action: "delete",
-    fileId: id,
-    church: church,
-    password: hashedPass,
-    token: token,
-    time: time,
-    nonce: nonce
-})
-    })
-    .then(r => r.json())
-    .then(data => {
-        if(data.success){
-            showStatus('success', "تم حذف الملف بنجاح.", "تم الحذف");
-            fetchMyFiles();
-        } else {
-            showStatus('error', sanitize(data.message||''), "فشل الحذف");
-        }
-        setLoadingState(false);
-    })
-    .catch(err => {
-        showStatus('error', "خطأ اتصال: " + err, "فشل الاتصال");
-        setLoadingState(false);
-    });
-}
+                fetchWithTimeout(WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: "delete",
+                        fileId: id,
+                        church: church,
+                        password: hashedPass,
+                        token: token,
+                        time: time,
+                        nonce: nonce
+                    })
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            localStorage.setItem('failedAttempts', 0);
+                            showStatus('success', "🗑️ تم حذف الملف وبياناته بنجاح.", "✅ تم الحذف بنجاح", null, 'تم الحذف');
+                            fetchMyFiles();
+                        } else {
+                            if (data.message && data.message.includes("كلمة المرور خاطئة")) {
+                                recordFailedAttempt();
+                            } else {
+                                showStatus('error', sanitize(data.message || 'فشل حذف الملف. يرجى المحاولة مرة أخرى.'), "❌ فشل الحذف — حاول مرة أخرى", null, 'موافق');
+                            }
+                        }
+                        setLoadingState(false);
+                    })
+                    .catch(err => {
+                        const m = (err && err.name === 'AbortError')
+                            ? 'انتهت مهلة الاتصال (60 ثانية). تحقق من الإنترنت وحاول مرة أخرى.'
+                            : 'حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.';
+                        showStatus('error', m, '❌ فشل الاتصال — حاول مرة أخرى', null, 'موافق');
+                        setLoadingState(false);
+                    });
+            }
     </script>
 </body>
+
 </html>
