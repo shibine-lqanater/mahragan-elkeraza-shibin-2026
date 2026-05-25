@@ -10,7 +10,7 @@
 
     <!-- ==================== رؤوس أمان ==================== -->
     <meta http-equiv="Content-Security-Policy"
-        content="default-src * 'unsafe-inline' data: blob:; connect-src * 'self' blob: data: https://*.google.com https://*.googleusercontent.com https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://unpkg.com; frame-ancestors 'none'">
+        content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; connect-src 'self' blob: data: https://script.google.com https://*.google.com https://*.googleusercontent.com https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://unpkg.com; frame-ancestors 'none'">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -285,7 +285,7 @@
     </footer>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxIdiRr7bB-UgLCZ7BveDaMAshCAbmeOn98Bpo7U0G0b-t_t02IpZUXUFJljOogNpbEKg/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw55atbKBd_MT72iknicnjytY70lY-axfIk6HyS5eeH_SI21Ck3ZuYkqQy3VjA1wJ_U_A/exec";
 
         // ==================== متغيرات الحالة ====================
         let tempUpload = null;
@@ -551,7 +551,7 @@
             const churches = [
                 "كنيسة العذراء المطرانية", "العذراء و ابوسفين السلمانية", "العذراء و ابوسفين دجوي",
                 "العذراء و الانبا بيشوي المنية", "العذراء و الانبا موسي الخصوص", "العذراء و البابا بطرس الخانكة",
-                "العذراء و الرسولين", "العذراء و الشهدين القلج", "العذراء و الشهيد ابانوب القلج",
+                "كنيسة العذراء و الرسولين", "كنيسة العذراء و الشهدين القلج", "العذراء و الشهيد ابانوب القلج",
                 "العذراء و الشهيد ابانوب المرج الغربية", "العذراء و الملاك العكرشة", "العذراء و الملاك ميخائيل الخصوص",
                 "العذراء و مارجرجس كفر شبين", "العذراء و مارمينا الجبل الاصفر", "العذراء و ماريوحنا الخصوص",
                 "العذراء و يوسف النجار الخصوص", "كنيسة ابوسفين الخصوص", "كنيسة ابوسفين و دميانة الجبل الاصفر",
@@ -865,20 +865,19 @@
                 ];
                 const fileName = file.name;
                 const validExt = /\.(xlsx|xls)$/i.test(fileName);
-                const validChars = /^[^\\\/:*?"<>|]+$/.test(fileName.split('.').slice(0, -1).join('.'));
 
-                if (!validExt || !validChars) {
+                if (!validExt) {
                     dropZone.classList.add('shake-error');
                     setTimeout(() => dropZone.classList.remove('shake-error'), 500);
-                    showStatus('error', "اسم الملف غير صالح. يرجى التأكد من أن الاسم لا يحتوي على رموز ممنوعة (مثل / \\ : * ? < > |) وينتهي بـ .xlsx أو .xls", "اسم ملف غير صالح", null, 'تغيير اسم الملف');
+                    showStatus('error', "نوع الملف غير صالح. يرجى التأكد من أن الملف ينتهي بـ .xlsx أو .xls", "ملف غير صالح", null, 'تغيير الملف');
                     return;
                 }
                 const validType = allowedTypes.includes(file.type) || file.type === '';
-                if (!validExt || !validType || file.size > 5 * 1024 * 1024) {
+                if (!validExt || !validType || file.size > 7 * 1024 * 1024) {
                     dropZone.classList.add('shake-error');
                     setTimeout(() => dropZone.classList.remove('shake-error'), 500);
 
-                    showStatus('error', "نوع أو حجم الملف غير مقبول. يُسمح فقط بملفات XLSX/XLS حتى 5 مB.", "ملف غير مقبول", null, 'تغيير الملف');
+                    showStatus('error', "نوع أو حجم الملف غير مقبول. يُسمح فقط بملفات XLSX/XLS حتى 7 مB.", "ملف غير مقبول", null, 'تغيير الملف');
                     return;
                 }
 
@@ -930,6 +929,9 @@
                     const mainStage = rowStages[0] || "غير محدد";
                     const dupKey = `${cleanName}\vert ${mainStage}`;
 
+                    const gender = row[2] ? row[2].toString().trim() : "";
+                    const day = parseInt(row[3]), month = parseInt(row[4]), year = parseInt(row[5]);
+
                     if (!nameInfo[dupKey]) {
                         nameInfo[dupKey] = { name: originalName, rowNum: i + 1, info: currentRowDetails };
                     } else {
@@ -942,8 +944,6 @@
                         });
                     }
 
-                    const gender = row[2] ? row[2].toString().trim() : "";
-                    const day = parseInt(row[3]), month = parseInt(row[4]), year = parseInt(row[5]);
 
                     if (isNaN(day) || isNaN(month) || isNaN(year)) {
                         allErrors.push(`📍 صف ${i + 1} [${originalName}]: تاريخ الميلاد ناقص أو غير صحيح.`);
@@ -969,20 +969,33 @@
                         allErrors.push(`📍 صف ${i + 1} [${originalName}]: يجب اختيار مسابقة في الخانة الأولى.`);
                     }
 
+                    let invalidActivityFound = false;
                     for (let c = 6; c <= 13; c++) {
                         const val = row[c] ? row[c].toString().trim() : "";
                         if (val && !val.includes("ختر")) {
                             activities.push(val);
-                            fixedStages.forEach(fs => { if (val.includes(fs) && !rowStages2.includes(fs)) rowStages2.push(fs); });
+                            let stageFoundInVal = false;
+                            fixedStages.forEach(fs => {
+                                if (val.includes(fs)) {
+                                    stageFoundInVal = true;
+                                    if (!rowStages2.includes(fs)) rowStages2.push(fs);
+                                }
+                            });
+                            if (!stageFoundInVal) {
+                                invalidActivityFound = true;
+                            }
                         }
                     }
 
-                    if (rowStages2.length > 1) allErrors.push(`📍 صف ${i + 1}: تداخل مراحل (${rowStages2.join(" و ")}).`);
-                    if (originalName.split(" ").filter(p => p).length < 3) allErrors.push(`📍 صف ${i + 1}: الاسم ليس ثلاثياً.`);
-                    if (gender !== "ذكر" && gender !== "انثى") allErrors.push(`📍 صف ${i + 1}: لم يتم تحديد النوع.`);
-                    if (!activities[0]) allErrors.push(`📍 صف ${i + 1}: لم يتم اختيار مسابقة.`);
+                    if (invalidActivityFound) {
+                        allErrors.push(`📍 صف ${i + 1} [${originalName}]: برجاء اختيار المسابقة و المرحلة من قايمة المسابقات.`);
+                    }
+                    if (rowStages2.length > 1) allErrors.push(`📍 صف ${i + 1} [${originalName}]: تداخل مراحل (${rowStages2.join(" و ")}).`);
+                    if (originalName.split(" ").filter(p => p).length < 3) allErrors.push(`📍 صف ${i + 1} [${originalName}]: الاسم ليس ثلاثياً.`);
+                    if (gender !== "ذكر" && gender !== "انثى") allErrors.push(`📍 صف ${i + 1} [${originalName}]: لم يتم تحديد النوع.`);
+                    if (!activities[0]) allErrors.push(`📍 صف ${i + 1} [${originalName}]: لم يتم اختيار مسابقة.`);
 
-                    descriptionData.push(`${originalName}*${activities.join(" ، ")}*${day}/${month}/${year}`);
+                    descriptionData.push(`${originalName}*${activities.join(" ، ")}*${day}/${month}/${year}*${gender}`);
                     const mainStage2 = rowStages2[0] || "غير محدد";
                     currentFileLevels[mainStage2] = (currentFileLevels[mainStage2] || 0) + 1;
                     validCount++;
@@ -1352,7 +1365,7 @@
                 closeModal();
 
                 const church = sanitize(document.getElementById('churchName').value);
-                const pass = document.getElementById('password').value; // لا نعقّم قبل التشفير
+                const pass = document.getElementById('password').value.trim(); // لا نعقّم قبل التشفير
 
                 // 🔐 تشفير الباسورد
                 const hashedPass = await hashPassword(pass);
