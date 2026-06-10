@@ -10,7 +10,7 @@
 
     <!-- ==================== رؤوس أمان ==================== -->
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; connect-src 'self' blob: data: https://script.google.com https://*.google.com https://*.googleusercontent.com https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://unpkg.com; frame-ancestors 'none'">
+       connect-src 'self' blob: data: https://script.google.com https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://matraneya-worker.shibinelqanater12.workers.dev;
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -285,7 +285,7 @@
     </footer>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwgX6vIyupTA_ZgebPoA0mG9HYie2HWloQFH-Rs32gr6eaQ09C6LkhdcrRlLh_kpR4gWw/exec";
+        const WORKER_URL = "https://matraneya-worker.shibinelqanater12.workers.dev";
 
         // ==================== متغيرات الحالة ====================
         let tempUpload = null;
@@ -299,6 +299,25 @@
             const arr = new Uint8Array(16);
             crypto.getRandomValues(arr);
             return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // 🔒 بصمة المتصفح — تُحسب مرة واحدة وتُرسل مع كل طلب
+        let _browserFingerprint = null;
+        async function getBrowserFingerprint() {
+            if (_browserFingerprint) return _browserFingerprint;
+            const raw = [
+                navigator.userAgent,
+                navigator.language,
+                screen.width + 'x' + screen.height,
+                screen.colorDepth,
+                Intl.DateTimeFormat().resolvedOptions().timeZone,
+                navigator.hardwareConcurrency || 0,
+                navigator.platform || ''
+            ].join('|');
+            const enc = new TextEncoder();
+            const buf = await crypto.subtle.digest('SHA-256', enc.encode(raw));
+            _browserFingerprint = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+            return _browserFingerprint;
         }
 
         // منع الطلبات المتكررة من جانب العميل
@@ -384,15 +403,37 @@
             }
         }
 
-        // استعادة المؤقت عند تحميل الصفحة إذا كان موجوداً أو بدء مؤقت جديد
+        // التعامل مع انتهاء صلاحية الجلسة
+        function handleSessionExpired(msg) {
+            if (msg && (msg.includes("انتهت صلاحية الجلسة") || msg.includes("Expired") || msg.includes("أعد كتابة كلمة المرور"))) {
+                sessionStorage.removeItem('sessionToken');
+                sessionStorage.removeItem('sessionExpiry');
+                const statsCard = document.getElementById('statsCard');
+                const historySection = document.getElementById('historySection');
+                const searchBox = document.getElementById('searchBox');
+                const sessionTimerContainer = document.getElementById('sessionTimerContainer');
+                if (statsCard) statsCard.classList.add('hidden');
+                if (historySection) historySection.classList.add('hidden');
+                if (searchBox) searchBox.classList.add('hidden');
+                if (sessionTimerContainer) sessionTimerContainer.classList.add('hidden');
+                if (sessionTimer) clearInterval(sessionTimer);
+                showStatus('error', '⚠️ انتهت صلاحية الجلسة على السيرفر. يرجى إدخال كلمة المرور مجدداً لإعادة الدخول.', 'الجلسة منتهية', null, 'موافق');
+                return true;
+            }
+            return false;
+        }
+
+        // استئناف العداد فقط لو في جلسة نشطة من قبل (sessionToken + sessionExpiry)
         window.addEventListener('load', () => {
             const expiry = sessionStorage.getItem('sessionExpiry');
-            if (expiry && Date.now() < expiry) {
+            const token = sessionStorage.getItem('sessionToken');
+            // ✅ شغّل العداد فقط لو في جلسة حقيقية من السيرفر لم تنته بعد
+            if (token && expiry && Date.now() < Number(expiry)) {
+                if (sessionTimer) clearInterval(sessionTimer);
                 sessionTimer = setInterval(updateTimerDisplay, 1000);
                 updateTimerDisplay();
-            } else {
-                startSessionTimer(); // بدء مؤقت جديد من أول ما الصفحة تفتح
             }
+            // ❌ لا تبدأ عداداً جديداً هنا — العداد يبدأ فقط بعد تسجيل دخول ناجح من السيرفر
         });
 
         // Fetch مع Timeout (60 ثانية) لمنع التعليق اللانهائي
@@ -433,6 +474,7 @@
             const passwordInput = document.getElementById('password');
             const church = churchInput ? sanitize(churchInput.value) : "";
             const pass = passwordInput ? passwordInput.value.trim() : "";
+            const sessionToken = sessionStorage.getItem('sessionToken');
 
             let hasError = false;
             let errorsList = [];
@@ -447,7 +489,7 @@
                 if (!church) errorsList.push("اختيار الكنيسة");
                 else errorsList.push("اختيار كنيسة صحيحة من القائمة");
             }
-            if (!pass || pass.length < 4) {
+            if (!sessionToken && (!pass || pass.length < 4)) {
                 if (passwordInput) {
                     passwordInput.classList.add('shake-error', 'error-border');
                     setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
@@ -463,31 +505,44 @@
                 return;
             }
 
-            const hashedPass = await hashPassword(pass);
-            const time = Date.now();
-            const nonce = generateNonce();
-            const token = await generateToken(church, "download", time, nonce, hashedPass);
-
             setLoadingState(true, "جاري تجهيز الملف للتحميل…", "جاري التحميل");
 
-            fetchWithTimeout(WEB_APP_URL, {
-                method: 'POST',
-                body: JSON.stringify({
+            let downloadBody;
+            const dlFp = await getBrowserFingerprint();
+            if (sessionToken) {
+                downloadBody = {
+                    action: "download",
+                    fileId: fileId,
+                    church: church,
+                    sessionToken: sessionToken,
+                    fingerprint: dlFp
+                };
+            } else {
+                const hashedPass = await hashPassword(pass);
+                const time = Date.now();
+                const nonce = generateNonce();
+                const token = await generateToken(church, "download", time, nonce, hashedPass);
+                downloadBody = {
                     action: "download",
                     fileId: fileId,
                     church: church,
                     password: hashedPass,
+                    fingerprint: dlFp,
                     token: token,
                     time: time,
                     nonce: nonce
-                })
+                };
+            }
+
+            fetchWithTimeout(WORKER_URL, {
+                method: 'POST',
+                body: JSON.stringify(downloadBody)
             })
                 .then(r => r.json())
                 .then(data => {
                     setLoadingState(false);
                     if (data.success && data.fileData) {
                         localStorage.setItem('failedAttempts', 0);
-                        // التحقق من نوع الملف المستلم قبل الفتح
                         const allowedMime = [
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                             'application/vnd.ms-excel',
@@ -514,7 +569,9 @@
                         a.remove();
                         showStatus('success', "تم تحميل الملف بنجاح.", "اكتمل التحميل", null, 'تم التحميل');
                     } else {
-                        if (data.message && data.message.includes("كلمة المرور خاطئة")) {
+                        if (handleSessionExpired(data.message)) {
+                            // تم التعامل مع انتهاء الصلاحية
+                        } else if (data.message && data.message.includes("كلمة المرور خاطئة")) {
                             recordFailedAttempt();
                         } else {
                             showStatus('error', sanitize(data.message || ''), "فشل التحميل", null, 'موافق');
@@ -537,6 +594,470 @@
             "ذوى القدرات الخاصة", "قانا الجليل", "تعليم الكبار", "الصم والبكم",
             "سمعان الشيخ", "الحرفيون"
         ];
+
+        // قائمة المسابقات التفصيلية المعتمدة المستخرجة من شيتات المطرانية
+        const allowedCompetitions = [
+            "أولى وثانية/ألحان  مستوى أول",
+            "أولى وثانية/ألحان  مستوى ثانى",
+            "أولى وثانية/ألحان  موهوبين  جماعى",
+            "أولى وثانية/ألحان  موهوبين  فردى",
+            "أولى وثانية/أوبريت",
+            "أولى وثانية/الكتاب المقدس والمحفوظات",
+            "أولى وثانية/دراسية",
+            "أولى وثانية/رياضية",
+            "أولى وثانية/عزف جماعى",
+            "أولى وثانية/عزف فردى",
+            "أولى وثانية/فنون تشكيلية",
+            "أولى وثانية/كانتاتا",
+            "أولى وثانية/كمبيوتر",
+            "أولى وثانية/كورال   مستوى ثانى متميز",
+            "أولى وثانية/كورال  مستوى أول",
+            "أولى وثانية/كورال  مستوى أول متميز",
+            "أولى وثانية/كورال  مستوى ثانى",
+            "أولى وثانية/لغة قبطية",
+            "أولى وثانية/مسرح",
+            "أولى وثانية/مسرح باللغة القبطية",
+            "إعدادى/أبحاث",
+            "إعدادى/أبحاث ميدانية",
+            "إعدادى/أداء فردى  صولو",
+            "إعدادى/أدبية",
+            "إعدادى/ألحان  مستوى أول",
+            "إعدادى/ألحان  مستوى التميز الجماعى",
+            "إعدادى/ألحان  مستوى ثانى",
+            "إعدادى/أوبريت",
+            "إعدادى/ابتكارات هندسية",
+            "إعدادى/الحكى",
+            "إعدادى/المسابقة الثقافية",
+            "إعدادى/الموضوع الدراسى الأساسى",
+            "إعدادى/تأليف موسيقي مستوي أول",
+            "إعدادى/تأليف موسيقي مستوي ثاني",
+            "إعدادى/دراسية",
+            "إعدادى/عزف جماعى",
+            "إعدادى/عزف فردى",
+            "إعدادى/فنون تشكيلية",
+            "إعدادى/كانتاتا",
+            "إعدادى/كمبيوتر",
+            "إعدادى/كورال   مستوى ثانى متميز",
+            "إعدادى/كورال  مستوى أول",
+            "إعدادى/كورال  مستوى أول متميز",
+            "إعدادى/كورال  مستوى ثانى",
+            "إعدادى/لغة قبطية  مستوى أول",
+            "إعدادى/لغة قبطية  مستوى ثانى",
+            "إعدادى/مايم وبانتومايم",
+            "إعدادى/محفوظات",
+            "إعدادى/مسرح",
+            "إعدادى/مسرح باللغة القبطية",
+            "إعدادى/مونودراما",
+            "الحرفيون/أبحاث",
+            "الحرفيون/أداء فردى  صولو",
+            "الحرفيون/أدبية",
+            "الحرفيون/ألحان  مستوى أول",
+            "الحرفيون/ألحان  مستوى ثانى",
+            "الحرفيون/الموضوع الدراسى الأساسى",
+            "الحرفيون/دراسية",
+            "الحرفيون/فنون تشكيلية",
+            "الحرفيون/كمبيوتر",
+            "الحرفيون/كورال مستوي أول متميز",
+            "الحرفيون/كورال مستوي اول",
+            "الحرفيون/لغة قبطية",
+            "الحرفيون/مسرح",
+            "الخدام واعداد الخدام/ألحان  مستوى أول",
+            "الخدام واعداد الخدام/ألحان  مستوى ثانى",
+            "الخدام واعداد الخدام/دراسية",
+            "الخدام واعداد الخدام/لغة قبطية  مستوى أول",
+            "الخدام واعداد الخدام/لغة قبطية  مستوى ثانى",
+            "الصم والبكم/دراسية",
+            "الصم والبكم/فنون تشكيلية",
+            "الصم والبكم/كمبيوتر",
+            "الصم والبكم/مسابقة رياضية",
+            "الصم والبكم/مسرح",
+            "تعليم الكبار/أبحاث",
+            "تعليم الكبار/أداء فردى  صولو",
+            "تعليم الكبار/أدبية",
+            "تعليم الكبار/ألحان  مستوى أول",
+            "تعليم الكبار/ألحان  مستوى ثانى",
+            "تعليم الكبار/دراسية",
+            "تعليم الكبار/فنون تشكيلية",
+            "تعليم الكبار/كمبيوتر",
+            "تعليم الكبار/لغة قبطية",
+            "تعليم الكبار/مسرح",
+            "تعليم كبار/ كورال مستوى أول",
+            "تعليم كبار/ كورال مستوى أول متميز",
+            "ثالثة ورابعة/ أبحاث",
+            "ثالثة ورابعة/أداء فردى  صولو",
+            "ثالثة ورابعة/أدبية",
+            "ثالثة ورابعة/ألحان  مستوى أول",
+            "ثالثة ورابعة/ألحان  مستوى ثانى",
+            "ثالثة ورابعة/ألحان  موهوبين  جماعى",
+            "ثالثة ورابعة/ألحان  موهوبين  فردى",
+            "ثالثة ورابعة/أوبريت",
+            "ثالثة ورابعة/ابتكارات هندسية",
+            "ثالثة ورابعة/الكتاب المقدس والمحفوظات",
+            "ثالثة ورابعة/دراسية",
+            "ثالثة ورابعة/رياضية",
+            "ثالثة ورابعة/عزف جماعى",
+            "ثالثة ورابعة/عزف فردى",
+            "ثالثة ورابعة/فنون تشكيلية",
+            "ثالثة ورابعة/كانتاتا",
+            "ثالثة ورابعة/كمبيوتر",
+            "ثالثة ورابعة/كورال   مستوى ثانى متميز",
+            "ثالثة ورابعة/كورال  مستوى أول",
+            "ثالثة ورابعة/كورال  مستوى أول متميز",
+            "ثالثة ورابعة/كورال  مستوى ثانى",
+            "ثالثة ورابعة/لغة قبطية  مستوى أول",
+            "ثالثة ورابعة/لغة قبطية  مستوى ثانى",
+            "ثالثة ورابعة/مسرح",
+            "ثالثة ورابعة/مسرح باللغة القبطية",
+            "ثانوى/أبحاث",
+            "ثانوى/أبحاث ميدانية",
+            "ثانوى/أداء فردى  صولو",
+            "ثانوى/أدبية",
+            "ثانوى/ألحان  مستوى أول",
+            "ثانوى/ألحان  مستوى التميز الجماعى",
+            "ثانوى/ألحان  مستوى ثانى",
+            "ثانوى/أوبريت",
+            "ثانوى/ابتكارات هندسية",
+            "ثانوى/الحكى",
+            "ثانوى/المسابقة الثقافية",
+            "ثانوى/الموضوع الدراسى الأساسى",
+            "ثانوى/تأليف موسيقي مستوي أول",
+            "ثانوى/تأليف موسيقي مستوي ثاني",
+            "ثانوى/دراسية",
+            "ثانوى/عزف جماعى",
+            "ثانوى/عزف فردى",
+            "ثانوى/فنون تشكيلية",
+            "ثانوى/كانتاتا",
+            "ثانوى/كمبيوتر",
+            "ثانوى/كورال   مستوى ثانى متميز",
+            "ثانوى/كورال  مستوى أول",
+            "ثانوى/كورال  مستوى أول متميز",
+            "ثانوى/كورال  مستوى ثانى",
+            "ثانوى/لغة قبطية  مستوى أول",
+            "ثانوى/لغة قبطية  مستوى ثانى",
+            "ثانوى/مايم وبانتومايم",
+            "ثانوى/محفوظات",
+            "ثانوى/مسرح",
+            "ثانوى/مسرح باللغة القبطية",
+            "ثانوى/مونودراما",
+            "جامعة/أبحاث",
+            "جامعة/أبحاث ميدانية",
+            "جامعة/أداء فردى  صولو",
+            "جامعة/أدبية",
+            "جامعة/ألحان  مستوى أول",
+            "جامعة/ألحان  مستوى التميز الجماعى",
+            "جامعة/ألحان  مستوى ثانى",
+            "جامعة/أوبريت",
+            "جامعة/ابتكارات هندسية",
+            "جامعة/الحكى",
+            "جامعة/المسابقة الثقافية",
+            "جامعة/الموضوع الدراسى الأساسى",
+            "جامعة/تأليف موسيقي مستوي أول",
+            "جامعة/تأليف موسيقي مستوي ثاني",
+            "جامعة/دراسية",
+            "جامعة/عزف جماعى",
+            "جامعة/عزف فردى",
+            "جامعة/فنون تشكيلية",
+            "جامعة/كانتاتا",
+            "جامعة/كمبيوتر",
+            "جامعة/كورال   مستوى ثانى متميز",
+            "جامعة/كورال  مستوى أول",
+            "جامعة/كورال  مستوى أول متميز",
+            "جامعة/كورال  مستوى ثانى",
+            "جامعة/لغة قبطية  مستوى أول",
+            "جامعة/لغة قبطية  مستوى ثانى",
+            "جامعة/مايم وبانتومايم",
+            "جامعة/مسرح",
+            "جامعة/مسرح باللغة القبطية",
+            "جامعة/مونودراما",
+            "حضانة/ألحان  مستوى أول",
+            "حضانة/ألحان  مستوى ثانى",
+            "حضانة/ألحان  موهوبين  جماعى",
+            "حضانة/ألحان  موهوبين  فردى",
+            "حضانة/الكتاب المقدس والمحفوظات",
+            "حضانة/دراسية",
+            "حضانة/رياضية",
+            "حضانة/عزف جماعى",
+            "حضانة/عزف فردى",
+            "حضانة/فنون تشكيلية",
+            "حضانة/كمبيوتر",
+            "حضانة/كورال  مستوى أول",
+            "حضانة/كورال  مستوى أول متميز",
+            "حضانة/لغة قبطية",
+            "حضانة/مسرح",
+            "خامسة وسادسة/ أبحاث",
+            "خامسة وسادسة/أداء فردى  صولو",
+            "خامسة وسادسة/أدبية",
+            "خامسة وسادسة/ألحان  مستوى أول",
+            "خامسة وسادسة/ألحان  مستوى ثانى",
+            "خامسة وسادسة/ألحان  موهوبين  جماعى",
+            "خامسة وسادسة/ألحان  موهوبين  فردى",
+            "خامسة وسادسة/أوبريت",
+            "خامسة وسادسة/ابتكارات هندسية",
+            "خامسة وسادسة/الكتاب المقدس والمحفوظات",
+            "خامسة وسادسة/المسابقة الثقافية",
+            "خامسة وسادسة/الموضوع الدراسى الأساسى",
+            "خامسة وسادسة/دراسية",
+            "خامسة وسادسة/عزف جماعى",
+            "خامسة وسادسة/عزف فردى",
+            "خامسة وسادسة/فنون تشكيلية",
+            "خامسة وسادسة/كانتاتا",
+            "خامسة وسادسة/كمبيوتر",
+            "خامسة وسادسة/كورال   مستوى ثانى متميز",
+            "خامسة وسادسة/كورال  مستوى أول",
+            "خامسة وسادسة/كورال  مستوى أول متميز",
+            "خامسة وسادسة/كورال  مستوى ثانى",
+            "خامسة وسادسة/لغة قبطية  مستوى أول",
+            "خامسة وسادسة/لغة قبطية  مستوى ثانى",
+            "خامسة وسادسة/مسرح",
+            "خامسة وسادسة/مسرح باللغة القبطية",
+            "خريجين/أبحاث",
+            "خريجين/أبحاث ميدانية",
+            "خريجين/أداء فردي صولو تحت ال 46",
+            "خريجين/أداء فردي صولو فوق ال 46",
+            "خريجين/أدبية",
+            "خريجين/ألحان  مستوى أول",
+            "خريجين/ألحان  مستوى ثانى",
+            "خريجين/أوبريت",
+            "خريجين/ابتكارات هندسية",
+            "خريجين/الحكى",
+            "خريجين/المسابقة الثقافية",
+            "خريجين/الموضوع الدراسى الأساسى",
+            "خريجين/تأليف موسيقي مستوي أول",
+            "خريجين/تأليف موسيقي مستوي ثاني",
+            "خريجين/دراسية",
+            "خريجين/عزف جماعى",
+            "خريجين/عزف فردى",
+            "خريجين/فنون تشكيلية",
+            "خريجين/كانتاتا",
+            "خريجين/كمبيوتر",
+            "خريجين/كورال   مستوى ثانى متميز",
+            "خريجين/كورال  مستوى أول",
+            "خريجين/كورال  مستوى أول متميز",
+            "خريجين/كورال  مستوى ثانى",
+            "خريجين/لغة قبطية  مستوى أول",
+            "خريجين/لغة قبطية  مستوى ثانى",
+            "خريجين/مايم وبانتومايم",
+            "خريجين/مسرح",
+            "خريجين/مسرح باللغة القبطية",
+            "خريجين/مونودراما",
+            "ديديموس/أبحاث",
+            "ديديموس/أداء فردى  صولو",
+            "ديديموس/أدبية",
+            "ديديموس/ألحان  مستوى أول",
+            "ديديموس/ألحان  مستوى تميز  القديس ديديموس",
+            "ديديموس/ألحان  مستوى ثانى",
+            "ديديموس/الموضوع الدراسى الأساسى",
+            "ديديموس/دراسية  أولى وثانية  القديس ديديموس",
+            "ديديموس/دراسية  اعدادى  القديس ديديموس",
+            "ديديموس/دراسية  تعليم كبار  القديس ديديموس",
+            "ديديموس/دراسية  ثالثة ورابعة  القديس ديديموس",
+            "ديديموس/دراسية  ثانوى  القديس ديديموس",
+            "ديديموس/دراسية  جامعة  القديس ديديموس",
+            "ديديموس/دراسية  حضانة  القديس ديديموس",
+            "ديديموس/دراسية  خامسة وسادسة  القديس ديديموس",
+            "ديديموس/دراسية  خريجين  القديس ديديموس",
+            "ديديموس/دراسية  سمعان الشيخ  ديديموس",
+            "ديديموس/رياضية",
+            "ديديموس/عزف جماعى",
+            "ديديموس/عزف فردى",
+            "ديديموس/فنون تشكيلية",
+            "ديديموس/كمبيوتر",
+            "ديديموس/كورال",
+            "ديديموس/لغة قبطية  أولى وثانية  القديس ديديموس",
+            "ديديموس/لغة قبطية  اعدادى  القديس ديديموس",
+            "ديديموس/لغة قبطية  تعليم كبار  ديديموس",
+            "ديديموس/لغة قبطية  ثالثة ورابعة  القديس ديديموس",
+            "ديديموس/لغة قبطية  ثانوى  القديس ديديموس",
+            "ديديموس/لغة قبطية  جامعة  القديس ديديموس",
+            "ديديموس/لغة قبطية  حضانة  القديس ديديموس",
+            "ديديموس/لغة قبطية  خامسة وسادسة  القديس ديديموس",
+            "ديديموس/لغة قبطية مستوي أول خريجين",
+            "ديديموس/لغة قبطية مستوي ثاني خريجين",
+            "ديديموس/محفوظات  مستوى بسيط  القديس ديديموس",
+            "ديديموس/محفوظات  مستوى متميز  القديس ديديموس",
+            "ديديموس/مسرح",
+            "ذوى القدرات الخاصة/ألحان  بسيط الإعاقة",
+            "ذوى القدرات الخاصة/ألحان  متوسط الإعاقة",
+            "ذوى القدرات الخاصة/ألحان المستوى المتميز",
+            "ذوى القدرات الخاصة/دراسية  المستوى المتميز",
+            "ذوى القدرات الخاصة/دراسية  بسيط الاعاقة",
+            "ذوى القدرات الخاصة/دراسية  شديد الاعاقة",
+            "ذوى القدرات الخاصة/دراسية  متوسط الاعاقة",
+            "ذوى القدرات الخاصة/رياضية  المستوى الأول",
+            "ذوى القدرات الخاصة/رياضية  المستوى الثانى",
+            "ذوى القدرات الخاصة/فنون تشكيلية",
+            "ذوى القدرات الخاصة/كورال",
+            "ذوى القدرات الخاصة/لغة قبطية  المستوى المتميز",
+            "ذوى القدرات الخاصة/لغة قبطية  بسيط الإعاقة",
+            "ذوى القدرات الخاصة/لغة قبطية  متوسط الإعاقة",
+            "ذوى القدرات الخاصة/مسرح",
+            "سمعان الشيخ/أبحاث",
+            "سمعان الشيخ/أدبية",
+            "سمعان الشيخ/ألحان  مستوى أول",
+            "سمعان الشيخ/ألحان  مستوى ثانى",
+            "سمعان الشيخ/الموضوع الدراسى الأساسى",
+            "سمعان الشيخ/دراسية",
+            "سمعان الشيخ/فنون تشكيلية",
+            "سمعان الشيخ/كورال مستوي أول متميز",
+            "سمعان الشيخ/كورال مستوي اول",
+            "قانا الجليل/أبحاث",
+            "قانا الجليل/أداء فردي صولو تحت ال 46",
+            "قانا الجليل/أداء فردي صولو فوق ال 46",
+            "قانا الجليل/أدبية",
+            "قانا الجليل/ألحان  مستوى أول",
+            "قانا الجليل/ألحان  مستوى ثانى",
+            "قانا الجليل/المسابقة الثقافية",
+            "قانا الجليل/الموضوع الدراسى الأساسى",
+            "قانا الجليل/دراسية",
+            "قانا الجليل/فنون تشكيلية",
+            "قانا الجليل/كورال مستوي أول متميز",
+            "قانا الجليل/كورال مستوي اول",
+            "قانا الجليل/لغة قبطية",
+            "قانا الجليل/مسرح",
+            "مجمع أولى وثانية/أوبريت",
+            "مجمع أولى وثانية/عزف جماعي",
+            "مجمع أولى وثانية/فنون مسرحية حديثة",
+            "مجمع أولى وثانية/كانتانا",
+            "مجمع أولى وثانية/كورال مستوي أول متميز",
+            "مجمع أولى وثانية/كورال مستوي اول",
+            "مجمع أولى وثانية/كورال مستوي ثاني",
+            "مجمع أولى وثانية/كورال مستوي ثاني متميز",
+            "مجمع أولى وثانية/مسرح أسود",
+            "مجمع أولى وثانية/مسرح طفل",
+            "مجمع أولى وثانية/مسرح عرائس  جوانتى",
+            "مجمع أولى وثانية/مسرح عرائس  خيال ظل",
+            "مجمع أولى وثانية/مسرح عرائس  عصى",
+            "مجمع أولى وثانية/مسرح عرائس  ماريونيت",
+            "مجمع إعدادى/أوبريت",
+            "مجمع إعدادى/إعلامية",
+            "مجمع إعدادى/عزف جماعي",
+            "مجمع إعدادى/فنون مسرحية حديثة",
+            "مجمع إعدادى/قلب واحد",
+            "مجمع إعدادى/كانتانا",
+            "مجمع إعدادى/كورال مستوي أول متميز",
+            "مجمع إعدادى/كورال مستوي اول",
+            "مجمع إعدادى/كورال مستوي ثاني",
+            "مجمع إعدادى/كورال مستوي ثاني متميز",
+            "مجمع إعدادى/مسرح أسود",
+            "مجمع إعدادى/مسرح طفل",
+            "مجمع إعدادى/مسرح عرائس  جوانتى",
+            "مجمع إعدادى/مسرح عرائس  خيال ظل",
+            "مجمع إعدادى/مسرح عرائس  عصى",
+            "مجمع إعدادى/مسرح عرائس  ماريونيت",
+            "مجمع ثالثة ورابعة/أوبريت",
+            "مجمع ثالثة ورابعة/عزف جماعي",
+            "مجمع ثالثة ورابعة/فنون مسرحية حديثة",
+            "مجمع ثالثة ورابعة/كانتانا",
+            "مجمع ثالثة ورابعة/كورال مستوي أول متميز",
+            "مجمع ثالثة ورابعة/كورال مستوي اول",
+            "مجمع ثالثة ورابعة/كورال مستوي ثاني",
+            "مجمع ثالثة ورابعة/كورال مستوي ثاني متميز",
+            "مجمع ثالثة ورابعة/مسرح أسود",
+            "مجمع ثالثة ورابعة/مسرح طفل",
+            "مجمع ثالثة ورابعة/مسرح عرائس  جوانتى",
+            "مجمع ثالثة ورابعة/مسرح عرائس  خيال ظل",
+            "مجمع ثالثة ورابعة/مسرح عرائس  عصى",
+            "مجمع ثالثة ورابعة/مسرح عرائس  ماريونيت",
+            "مجمع ثانوى/أوبريت",
+            "مجمع ثانوى/إعلامية",
+            "مجمع ثانوى/عزف جماعي",
+            "مجمع ثانوى/فنون مسرحية حديثة",
+            "مجمع ثانوى/قلب واحد",
+            "مجمع ثانوى/كانتانا",
+            "مجمع ثانوى/كورال مستوي أول متميز",
+            "مجمع ثانوى/كورال مستوي اول",
+            "مجمع ثانوى/كورال مستوي ثاني",
+            "مجمع ثانوى/كورال مستوي ثاني متميز",
+            "مجمع ثانوى/مسرح أسود",
+            "مجمع ثانوى/مسرح طفل",
+            "مجمع ثانوى/مسرح عرائس  جوانتى",
+            "مجمع ثانوى/مسرح عرائس  خيال ظل",
+            "مجمع ثانوى/مسرح عرائس  عصى",
+            "مجمع ثانوى/مسرح عرائس  ماريونيت",
+            "مجمع جامعة/أوبريت",
+            "مجمع جامعة/إعلامية",
+            "مجمع جامعة/عزف جماعي",
+            "مجمع جامعة/فنون مسرحية حديثة",
+            "مجمع جامعة/قلب واحد",
+            "مجمع جامعة/كانتانا",
+            "مجمع جامعة/كورال مستوي أول متميز",
+            "مجمع جامعة/كورال مستوي اول",
+            "مجمع جامعة/كورال مستوي ثاني",
+            "مجمع جامعة/كورال مستوي ثاني متميز",
+            "مجمع جامعة/مسرح أسود",
+            "مجمع جامعة/مسرح طفل",
+            "مجمع جامعة/مسرح عرائس  جوانتى",
+            "مجمع جامعة/مسرح عرائس  خيال ظل",
+            "مجمع جامعة/مسرح عرائس  عصى",
+            "مجمع جامعة/مسرح عرائس  ماريونيت",
+            "مجمع حضانة/فنون مسرحية حديثة",
+            "مجمع حضانة/كانتانا",
+            "مجمع حضانة/كورال مستوي أول متميز",
+            "مجمع حضانة/كورال مستوي اول",
+            "مجمع حضانة/كورال مستوي ثاني",
+            "مجمع حضانة/كورال مستوي ثاني متميز",
+            "مجمع حضانة/مسرح أسود",
+            "مجمع حضانة/مسرح طفل",
+            "مجمع حضانة/مسرح عرائس  جوانتى",
+            "مجمع حضانة/مسرح عرائس  خيال ظل",
+            "مجمع حضانة/مسرح عرائس  عصى",
+            "مجمع حضانة/مسرح عرائس  ماريونيت",
+            "مجمع خامسة وسادسة/أوبريت",
+            "مجمع خامسة وسادسة/عزف جماعي",
+            "مجمع خامسة وسادسة/فنون مسرحية حديثة",
+            "مجمع خامسة وسادسة/كانتانا",
+            "مجمع خامسة وسادسة/كورال مستوي أول متميز",
+            "مجمع خامسة وسادسة/كورال مستوي اول",
+            "مجمع خامسة وسادسة/كورال مستوي ثاني",
+            "مجمع خامسة وسادسة/كورال مستوي ثاني متميز",
+            "مجمع خامسة وسادسة/مسرح أسود",
+            "مجمع خامسة وسادسة/مسرح طفل",
+            "مجمع خامسة وسادسة/مسرح عرائس  جوانتى",
+            "مجمع خامسة وسادسة/مسرح عرائس  خيال ظل",
+            "مجمع خامسة وسادسة/مسرح عرائس  عصى",
+            "مجمع خامسة وسادسة/مسرح عرائس  ماريونيت",
+            "مجمع خريجين/أوبريت",
+            "مجمع خريجين/إعلامية",
+            "مجمع خريجين/عزف جماعي",
+            "مجمع خريجين/فنون مسرحية حديثة",
+            "مجمع خريجين/قلب واحد",
+            "مجمع خريجين/كانتانا",
+            "مجمع خريجين/كورال مستوي أول متميز",
+            "مجمع خريجين/كورال مستوي اول",
+            "مجمع خريجين/كورال مستوي ثاني",
+            "مجمع خريجين/كورال مستوي ثاني متميز",
+            "مجمع خريجين/مسرح أسود",
+            "مجمع خريجين/مسرح طفل",
+            "مجمع خريجين/مسرح عرائس  جوانتى",
+            "مجمع خريجين/مسرح عرائس  خيال ظل",
+            "مجمع خريجين/مسرح عرائس  عصى",
+            "مجمع خريجين/مسرح عرائس  ماريونيت"
+        ];
+
+        // دالة تنظيف المسابقة للمقارنة
+        function normalizeCompetition(text) {
+            if (!text) return "";
+            return text.toString()
+                .trim()
+                .replace(/\s+/g, ' ')
+                .replace(/[أإآا]/g, 'ا')
+                .replace(/ة/g, 'ه')
+                .replace(/ى/g, 'ي')
+                .replace(/[ًٌٍَُِّ]/g, '');
+        }
+
+        const normalizedAllowedCompetitions = new Set(allowedCompetitions.map(c => normalizeCompetition(c)));
+
+        function getStageOfCompetition(comp) {
+            let part = comp.split('/')[0].trim();
+            if (part.startsWith("مجمع ")) {
+                part = part.substring(5).trim();
+            }
+            if (part === "تعليم كبار") {
+                part = "تعليم الكبار";
+            }
+            return part;
+        }
 
         // ملء قائمة المراحل في صندوق البحث
         const stageSelect = document.getElementById("searchStageInput");
@@ -806,7 +1327,8 @@
                 const val = row[c] ? row[c].toString().trim() : "";
                 if (val && !val.includes("ختر")) {
                     activities.push(sanitize(val)); // ✅ sanitize كل نشاط
-                    fixedStages.forEach(fs => { if (val.includes(fs)) stage = fs; });
+                    const compStage = getStageOfCompetition(val);
+                    if (compStage) stage = compStage;
                 }
             }
             return `<b>المرحلة:</b> ${sanitize(stage)} \vert  📅 <b>الميلاد:</b> ${day}/${month}/${year} <br> 🏆 <b>المسابقات:</b> ${activities.join(" ، ")}`;
@@ -828,6 +1350,7 @@
             const church = sanitize(churchInput.value);
             const password = passwordInput.value.trim(); // لا نعقّم كلمة المرور لأنها ستُشفّر بـ SHA-256
             const file = fileInput.files[0];
+            const sessionToken = sessionStorage.getItem('sessionToken');
 
             let hasError = false;
             let errorsList = [];
@@ -840,7 +1363,7 @@
                 if (!church) errorsList.push("اختيار الكنيسة");
                 else errorsList.push("اختيار كنيسة صحيحة من القائمة");
             }
-            if (!password || password.length < 4) {
+            if (!sessionToken && (!password || password.length < 4)) {
                 passwordInput.classList.add('shake-error', 'error-border');
                 setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
                 passwordInput.oninput = () => passwordInput.classList.remove('error-border');
@@ -908,6 +1431,44 @@
 
         /* ==================== فحص البيانات داخل الملف ==================== */
         function checkData(rows, password, churchName, fileObject) {
+            // التحقق الصارم من هيكل وتنسيق شيت المهرجان المعتمد
+            if (!rows || rows.length < 2) {
+                showStatus('error', "برجاء استخدام شيت المهرجان المعتمد", "ملف غير صالح");
+                return;
+            }
+
+            const row0 = rows[0] || [];
+            const row1 = rows[1] || [];
+
+            // 1. التحقق من وجود الشرط في الصف الأول
+            const cell0_0 = row0[0] ? row0[0].toString().trim() : "";
+            const norm0_0 = normalizeName(cell0_0);
+            const isRow0Valid = norm0_0.includes(normalizeName("يشترط")) &&
+                norm0_0.includes(normalizeName("المتسابقين")) &&
+                norm0_0.includes(normalizeName("الكنيسة"));
+
+            // 2. التحقق من تطابق العناوين في الصف الثاني بعد التوحيد
+            const expectedHeaders = ["الاسم", "الموبايل", "النوع", "اليوم", "الشهر", "السنة"].map(h => normalizeName(h));
+            let isHeadersValid = true;
+            for (let idx = 0; idx < expectedHeaders.length; idx++) {
+                const headerVal = row1[idx] ? normalizeName(row1[idx]) : "";
+                if (headerVal !== expectedHeaders[idx]) {
+                    isHeadersValid = false;
+                    break;
+                }
+            }
+
+            // 3. التحقق من وجود عمود المسابقة في العمود السابع على الأقل
+            const normCompHeader = row1[6] ? normalizeName(row1[6]) : "";
+            if (!normCompHeader.includes(normalizeName("المسابقة"))) {
+                isHeadersValid = false;
+            }
+
+            if (!isRow0Valid || !isHeadersValid) {
+                showStatus('error', "برجاء استخدام شيت المهرجان المعتمد", "ملف غير صالح");
+                return;
+            }
+
             const allErrors = [], nameInfo = {}, internalDuplicates = [], descriptionData = [];
             const currentFileLevels = {}, now = new Date();
             const todayDay = now.getDate(), todayMonth = now.getMonth() + 1, todayYear = now.getFullYear();
@@ -927,7 +1488,10 @@
                 const rowStages = [];
                 for (let c = 6; c <= 13; c++) {
                     const val = row[c] ? row[c].toString().trim() : "";
-                    fixedStages.forEach(fs => { if (val.includes(fs) && !rowStages.includes(fs)) rowStages.push(fs); });
+                    if (val && !val.includes("ختر")) {
+                        const compStage = getStageOfCompetition(val);
+                        if (compStage && !rowStages.includes(compStage)) rowStages.push(compStage);
+                    }
                 }
                 const mainStage = rowStages[0] || "غير محدد";
                 const dupKey = `${cleanName}\vert ${mainStage}`;
@@ -973,35 +1537,35 @@
                 }
 
                 let invalidActivityFound = false;
+                let unallowedActivities = [];
                 for (let c = 6; c <= 13; c++) {
                     const val = row[c] ? row[c].toString().trim() : "";
                     if (val && !val.includes("ختر")) {
                         activities.push(val);
-                        let stageFoundInVal = false;
-                        fixedStages.forEach(fs => {
-                            if (val.includes(fs)) {
-                                stageFoundInVal = true;
-                                if (!rowStages2.includes(fs)) rowStages2.push(fs);
-                            }
-                        });
-                        if (!stageFoundInVal) {
+                        const normVal = normalizeCompetition(val);
+                        if (normalizedAllowedCompetitions.has(normVal)) {
+                            const compStage = getStageOfCompetition(val);
+                            if (compStage && !rowStages2.includes(compStage)) rowStages2.push(compStage);
+                        } else {
                             invalidActivityFound = true;
+                            unallowedActivities.push(val);
                         }
                     }
                 }
 
                 if (invalidActivityFound) {
-                    allErrors.push(`📍 صف ${i + 1} [${originalName}]: برجاء اختيار المسابقة و المرحلة من قايمة المسابقات.`);
+                    allErrors.push(`📍 صف ${i + 1} [${originalName}]: المسابقة (${unallowedActivities.join(" - ")}) غير موجودة برجاء اختيار المرحلة و المسابقة من قائمة المسابقات.`);
                 }
                 if (rowStages2.length > 1) allErrors.push(`📍 صف ${i + 1} [${originalName}]: تداخل مراحل (${rowStages2.join(" و ")}).`);
                 if (originalName.split(" ").filter(p => p).length < 3) allErrors.push(`📍 صف ${i + 1} [${originalName}]: الاسم ليس ثلاثياً.`);
                 if (gender !== "ذكر" && gender !== "انثى") allErrors.push(`📍 صف ${i + 1} [${originalName}]: لم يتم تحديد النوع.`);
                 if (!activities[0]) allErrors.push(`📍 صف ${i + 1} [${originalName}]: لم يتم اختيار مسابقة.`);
 
-                descriptionData.push(`${originalName}*${activities.join(" ، ")}*${day}/${month}/${year}*${gender}`);
+               descriptionData.push(`${originalName}*${activities.join(" ، ")}*${day}/${month}/${year}*${gender}`);
                 const mainStage2 = rowStages2[0] || "غير محدد";
                 currentFileLevels[mainStage2] = (currentFileLevels[mainStage2] || 0) + 1;
-                validCount++;
+            const rowHasError = allErrors.some(e => e.includes(`صف ${i + 1}`));
+              if (!rowHasError) validCount++;
             }
 
             if (allErrors.length) {
@@ -1055,19 +1619,18 @@
             const btn = document.getElementById('uploadBtn');
             if (btn) btn.disabled = true;
 
-            const hashedPassword = await hashPassword(password);
+            const sessionToken = sessionStorage.getItem('sessionToken');
             const reader = new FileReader();
             reader.onload = async e => {
                 const base64 = e.target.result.split(',')[1];
-                const time = Date.now();
-                const nonce = generateNonce();
-                const token = await generateToken(churchName, "upload", time, nonce, hashedPassword);
-                fetchWithTimeout(WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
+                let uploadBody;
+                const fp = await getBrowserFingerprint();
+                if (sessionToken) {
+                    uploadBody = {
                         action: "upload",
                         church: churchName,
-                        password: hashedPassword,
+                        sessionToken: sessionToken,
+                        fingerprint: fp,
                         fileData: base64,
                         fileName: file.name,
                         count: count,
@@ -1075,10 +1638,34 @@
                         description: desc,
                         ignoreInternal: ignoreInternal,
                         ignoreExternal: ignoreExternal,
+                        templateVerified: true
+                    };
+                } else {
+                    const hashedPassword = await hashPassword(password);
+                    const time = Date.now();
+                    const nonce = generateNonce();
+                    const token = await generateToken(churchName, "upload", time, nonce, hashedPassword);
+                    uploadBody = {
+                        action: "upload",
+                        church: churchName,
+                        password: hashedPassword,
+                        fingerprint: fp,
+                        fileData: base64,
+                        fileName: file.name,
+                        count: count,
+                        levels: levels,
+                        description: desc,
+                        ignoreInternal: ignoreInternal,
+                        ignoreExternal: ignoreExternal,
+                        templateVerified: true,
                         token: token,
                         time: time,
                         nonce: nonce
-                    })
+                    };
+                }
+                fetchWithTimeout(WORKER_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(uploadBody)
                 })
                     .then(res => res.json())
                     .then(data => {
@@ -1131,7 +1718,9 @@
                             </div>
                         `);
                         } else {
-                            if (data.message && data.message.includes("كلمة المرور خاطئة")) {
+                            if (handleSessionExpired(data.message)) {
+                                if (btn) btn.disabled = false;
+                            } else if (data.message && data.message.includes("كلمة المرور خاطئة")) {
                                 recordFailedAttempt();
                             } else {
                                 showStatus('error', sanitize(data.message || 'فشل رفع الملف. يرجى التحقق من البيانات والمحاولة مرة أخرى.'), "❌ فشل الرفع — حاول مرة أخرى", null, 'موافق');
@@ -1155,26 +1744,48 @@
                 const originalReader = new FileReader();
                 originalReader.onload = async e => {
                     const base64 = e.target.result.split(',')[1];
-                    const t2 = Date.now(), n2 = generateNonce();
-                    const hp2 = await hashPassword(password);
-                    const tok2 = await generateToken(churchName, "upload", t2, n2, hp2);
-                    fetchWithTimeout(WEB_APP_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
+                    let uploadBody2;
+                    const fp2 = await getBrowserFingerprint();
+                    if (sessionToken) {
+                        uploadBody2 = {
                             action: "upload",
                             fileName: originalFile.name,
                             fileData: base64,
                             church: churchName,
-                            password: hp2,
+                            sessionToken: sessionToken,
+                            fingerprint: fp2,
                             count: count,
                             levels: levels,
                             description: desc,
                             ignoreInternal: ignoreInternal,
                             ignoreExternal: ignoreExternal,
+                            templateVerified: true
+                        };
+                    } else {
+                        const t2 = Date.now(), n2 = generateNonce();
+                        const hp2 = await hashPassword(password);
+                        const tok2 = await generateToken(churchName, "upload", t2, n2, hp2);
+                        uploadBody2 = {
+                            action: "upload",
+                            fileName: originalFile.name,
+                            fileData: base64,
+                            church: churchName,
+                            password: hp2,
+                            fingerprint: fp2,
+                            count: count,
+                            levels: levels,
+                            description: desc,
+                            ignoreInternal: ignoreInternal,
+                            ignoreExternal: ignoreExternal,
+                            templateVerified: true,
                             token: tok2,
                             time: t2,
                             nonce: n2
-                        })
+                        };
+                    }
+                    fetchWithTimeout(WORKER_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(uploadBody2)
                     })
                         .then(r => r.json())
                         .then(data => {
@@ -1188,7 +1799,9 @@
                                 showStatus('success', "✅ تم رفع الشيت وحفظ البيانات بنجاح.", "تم الرفع بنجاح");
                                 fetchMyFiles();
                             } else {
-                                if (data.message && data.message.includes("كلمة المرور خاطئة")) {
+                                if (handleSessionExpired(data.message)) {
+                                    // تم التعامل مع انتهاء الصلاحية
+                                } else if (data.message && data.message.includes("كلمة المرور خاطئة")) {
                                     recordFailedAttempt();
                                 } else {
                                     showStatus('error', sanitize(data.message || ''), "فشل الرفع", null, 'موافق');
@@ -1221,6 +1834,7 @@
             const passwordInput = document.getElementById('password');
             const church = sanitize(churchInput.value);
             const pass = passwordInput.value.trim();
+            const sessionToken = sessionStorage.getItem('sessionToken');
 
             let hasError = false;
             let errorsList = [];
@@ -1233,13 +1847,15 @@
                 if (!church) errorsList.push("اختيار الكنيسة");
                 else errorsList.push("اختيار كنيسة صحيحة من القائمة");
             }
-            if (!pass || pass.length < 4) {
-                passwordInput.classList.add('shake-error', 'error-border');
-                setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
-                passwordInput.oninput = () => passwordInput.classList.remove('error-border');
-                hasError = true;
-                if (!pass) errorsList.push("إدخال كلمة المرور");
-                else errorsList.push("أن تكون كلمة المرور 4 أحرف كحد أدنى");
+            if (!sessionToken) {
+                if (!pass || pass.length < 4) {
+                    passwordInput.classList.add('shake-error', 'error-border');
+                    setTimeout(() => passwordInput.classList.remove('shake-error'), 500);
+                    passwordInput.oninput = () => passwordInput.classList.remove('error-border');
+                    hasError = true;
+                    if (!pass) errorsList.push("إدخال كلمة المرور");
+                    else errorsList.push("أن تكون كلمة المرور 4 أحرف كحد أدنى");
+                }
             }
 
             if (hasError) {
@@ -1248,17 +1864,31 @@
             }
             setLoadingState(true, "جاري جلب البيانات وتحديث السجل…", "جاري التحديث");
             showProgress(30);
-            const hashedPass = await hashPassword(pass);
-            const time = Date.now(), nonce = generateNonce();
-            const token = await generateToken(church, "fetch", time, nonce, hashedPass);
-            fetchWithTimeout(WEB_APP_URL, {
+
+            let reqData;
+            const fp = await getBrowserFingerprint();
+            if (sessionToken) {
+                reqData = { action: "fetch", church: church, sessionToken: sessionToken, fingerprint: fp };
+            } else {
+                const hashedPass = await hashPassword(pass);
+                const time = Date.now(), nonce = generateNonce();
+                const token = await generateToken(church, "fetch", time, nonce, hashedPass);
+                reqData = { action: "fetch", church: church, password: hashedPass, time: time, nonce: nonce, token: token, fingerprint: fp };
+            }
+
+            fetchWithTimeout(WORKER_URL, {
                 method: 'POST',
-                body: JSON.stringify({ action: "fetch", church: church, password: hashedPass, time: time, nonce: nonce, token: token })
+                body: JSON.stringify(reqData)
             })
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
                         localStorage.setItem('failedAttempts', 0); // تصفير المحاولات عند النجاح
+                        if (data.sessionToken) {
+                            sessionStorage.setItem('sessionToken', data.sessionToken);
+                            passwordInput.value = ""; // مسح حقل الباسورد فوراً
+                        }
+                        startSessionTimer(); // بدء مؤقت الجلسة بعد تسجيل الدخول بنجاح
                         cachedFiles = data.files || [];
                         let html = "", total = 0, stageStats = {};
                         fixedStages.forEach(s => stageStats[s] = 0);
@@ -1307,7 +1937,9 @@
                         showProgress(100);
                         showStatus('success', '📋 تم تحديث البيانات وعرض السجل بنجاح.', "تم تحديث البيانات", null, 'تم التحديث');
                     } else {
-                        if (data.message && data.message.includes("كلمة المرور خاطئة")) {
+                        if (handleSessionExpired(data.message)) {
+                            // تم التعامل مع انتهاء الصلاحية
+                        } else if (data.message && data.message.includes("كلمة المرور خاطئة")) {
                             recordFailedAttempt();
                         } else {
                             showStatus('error', sanitize(data.message || 'خطأ في جلب البيانات'));
@@ -1369,29 +2001,41 @@
             closeModal();
 
             const church = sanitize(document.getElementById('churchName').value);
-            const pass = document.getElementById('password').value.trim(); // لا نعقّم قبل التشفير
-
-            // 🔐 تشفير الباسورد
-            const hashedPass = await hashPassword(pass);
-
-            // 🔐 توليد بيانات الأمان
-            const time = Date.now();
-            const nonce = generateNonce();
-            const token = await generateToken(church, "delete", time, nonce, hashedPass);
+            const pass = document.getElementById('password').value.trim();
+            const sessionToken = sessionStorage.getItem('sessionToken');
 
             setLoadingState(true, "جاري حذف الملف نهائياً…", "جاري الحذف");
 
-            fetchWithTimeout(WEB_APP_URL, {
-                method: 'POST',
-                body: JSON.stringify({
+            let deleteBody;
+            const delFp = await getBrowserFingerprint();
+            if (sessionToken) {
+                deleteBody = {
+                    action: "delete",
+                    fileId: id,
+                    church: church,
+                    sessionToken: sessionToken,
+                    fingerprint: delFp
+                };
+            } else {
+                const hashedPass = await hashPassword(pass);
+                const time = Date.now();
+                const nonce = generateNonce();
+                const token = await generateToken(church, "delete", time, nonce, hashedPass);
+                deleteBody = {
                     action: "delete",
                     fileId: id,
                     church: church,
                     password: hashedPass,
+                    fingerprint: delFp,
                     token: token,
                     time: time,
                     nonce: nonce
-                })
+                };
+            }
+
+            fetchWithTimeout(WORKER_URL, {
+                method: 'POST',
+                body: JSON.stringify(deleteBody)
             })
                 .then(r => r.json())
                 .then(data => {
@@ -1400,7 +2044,9 @@
                         showStatus('success', "🗑️ تم حذف الملف وبياناته بنجاح.", "✅ تم الحذف بنجاح", null, 'تم الحذف');
                         fetchMyFiles();
                     } else {
-                        if (data.message && data.message.includes("كلمة المرور خاطئة")) {
+                        if (handleSessionExpired(data.message)) {
+                            // تم التعامل مع انتهاء الصلاحية
+                        } else if (data.message && data.message.includes("كلمة المرور خاطئة")) {
                             recordFailedAttempt();
                         } else {
                             showStatus('error', sanitize(data.message || 'فشل حذف الملف. يرجى المحاولة مرة أخرى.'), "❌ فشل الحذف — حاول مرة أخرى", null, 'موافق');
