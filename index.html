@@ -9,9 +9,10 @@
     <meta name="description" content="بوابة رفع بيانات مهرجان الكرازة المرقسية - إيبارشية شبين القناطر">
 
     <!-- ==================== رؤوس أمان ==================== -->
-    <meta http-equiv="Content-Security-Policy"
-       connect-src 'self' blob: data: https://script.google.com https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://matraneya-worker.shibinelqanater12.workers.dev;
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="Content-Security-Policy" connect-src 'self' blob: data: https://script.google.com
+        https://*.google.com https://*.googleusercontent.com https://*.googleapis.com
+        https://matraneya-worker.shibinelqanater12.workers.dev; <meta http-equiv="X-Content-Type-Options"
+        content="nosniff">
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
     <meta name="referrer-policy" content="no-referrer">
@@ -1561,11 +1562,16 @@
                 if (gender !== "ذكر" && gender !== "انثى") allErrors.push(`📍 صف ${i + 1} [${originalName}]: لم يتم تحديد النوع.`);
                 if (!activities[0]) allErrors.push(`📍 صف ${i + 1} [${originalName}]: لم يتم اختيار مسابقة.`);
 
-               descriptionData.push(`${originalName}*${activities.join(" ، ")}*${day}/${month}/${year}*${gender}`);
+                descriptionData.push(`${originalName}*${activities.join(" ، ")}*${day}/${month}/${year}*${gender}`);
                 const mainStage2 = rowStages2[0] || "غير محدد";
                 currentFileLevels[mainStage2] = (currentFileLevels[mainStage2] || 0) + 1;
-            const rowHasError = allErrors.some(e => e.includes(`صف ${i + 1}`));
-              if (!rowHasError) validCount++;
+                const rowHasError = allErrors.some(e => e.includes(`صف ${i + 1}`));
+                if (!rowHasError) validCount++;
+            }
+
+            if (validCount === 0 && allErrors.length === 0) {
+                showStatus('error', 'لا يمكن رفع شيت فارغ', 'خطأ', null, 'حسناً');
+                return;
             }
 
             if (allErrors.length) {
